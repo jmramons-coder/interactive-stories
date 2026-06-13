@@ -198,6 +198,7 @@ function renderReader() {
   const slide = currentSlide();
   const motion = state.motion === "story" ? slide.motion : state.motion;
   const progress = story.slides.length === 1 ? 100 : (state.slideIndex / (story.slides.length - 1)) * 100;
+  const imageStyle = slide.image ? ` style="--slide-image: url('${slide.image}')"` : "";
 
   app.innerHTML = `
     <main class="reader-shell">
@@ -213,7 +214,7 @@ function renderReader() {
       </header>
 
       <section class="stage" aria-live="polite">
-        <div class="scene-art cover-${story.coverTone} motion-${motion}" data-slide="${state.slideIndex}">
+        <div class="scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}" data-slide="${state.slideIndex}"${imageStyle}>
           <div class="scene-copy">
             <p>${slide.text}</p>
             <span class="scene-label">${slide.imageLabel}</span>

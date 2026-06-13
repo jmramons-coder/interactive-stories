@@ -385,6 +385,10 @@ input:focus-visible {
     radial-gradient(circle at 50% 34%, transparent 0 30%, rgb(0 0 0 / 38%) 76%);
 }
 
+.scene-art.has-image::before {
+  background: var(--slide-image) center / cover no-repeat;
+}
+
 .scene-art.motion-pan-left::before {
   animation: panLeft 10s ease-in-out infinite alternate;
 }
@@ -514,6 +518,13 @@ input[type="range"] {
   --story-art:
     radial-gradient(circle at 20% 24%, #ffe3a3 0 10%, transparent 11%),
     linear-gradient(145deg, #7b2f3a 0%, #cf674d 34%, #efc36a 58%, #3d756e 82%, #17212a 100%);
+}
+
+.cover-cabane {
+  --story-art:
+    radial-gradient(circle at 28% 22%, #fff3b8 0 9%, transparent 10%),
+    radial-gradient(circle at 70% 62%, rgb(138 92 246 / 45%) 0 18%, transparent 19%),
+    linear-gradient(150deg, #261b15 0%, #6f3f25 28%, #c98242 50%, #37506a 72%, #10131c 100%);
 }
 
 @keyframes panLeft {

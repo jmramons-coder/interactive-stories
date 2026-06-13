@@ -1,27 +1,62 @@
 export const stories = [
   {
-    id: "river-cleanup",
-    title: "Mina and the River",
-    ageRange: "Ages 5-8",
-    topic: "Environmental care",
-    duration: "4 min",
-    coverTone: "river",
-    summary: "A child discovers how small choices help a neighborhood river become healthy again.",
-    ambient: "soft-water",
+    id: "la-cabane-en-etat-dalerte",
+    title: "La cabane en état d'alerte",
+    ageRange: "5-8 ans",
+    topic: "Imagination et autonomie",
+    duration: "5 min",
+    coverTone: "cabane",
+    summary: "Octavio s'ennuie pendant que Maman passe la balayeuse. Une cabane de draps devient alors un quartier général à protéger.",
+    ambient: "maison-calme",
     slides: [
       {
-        text: "Mina noticed the river was quieter than usual, as if it was waiting for someone to listen.",
-        imageLabel: "Quiet riverbank",
+        text: "Et c'est reparti. Maman passe la balayeuse à la grandeur de la maison.",
+        imageLabel: "Salon familial, Maman avec la balayeuse",
         motion: "pan-left"
       },
       {
-        text: "She gathered her friends, and together they sorted what belonged in bins and what could be reused.",
-        imageLabel: "Children sorting litter",
+        text: "Octavio veut jouer au soccer, mais personne n'est disponible. Il n'a rien à faire.",
+        imageLabel: "Octavio avec son ballon, seul dans le couloir",
+        motion: "zoom-out"
+      },
+      {
+        text: "Dans sa chambre, il fixe le plafond. Soudain, une idée apparaît: une cabane.",
+        imageLabel: "Chambre d'Octavio, idée lumineuse",
         motion: "zoom-in"
       },
       {
-        text: "By sunset, the river reflected the sky again, and Mina knew care could begin with one afternoon.",
-        imageLabel: "Clean sunset water",
+        text: "En tirant un drap de l'armoire, une avalanche de couvertures lui tombe sur la tête.",
+        imageLabel: "Avalanche de draps colorés",
+        motion: "pan-right"
+      },
+      {
+        text: "Il attache les draps à son lit à deux étages. Plus un seul trou: son repère est prêt.",
+        imageLabel: "Cabane de draps autour du lit superposé",
+        motion: "zoom-in"
+      },
+      {
+        text: "Babaou le singe devient capitaine, le dinosaure surveille l'entrée, et la petite voiture transporte les messages urgents.",
+        imageLabel: "Toutous et jouets en formation",
+        motion: "pan-left"
+      },
+      {
+        text: "Lampe de poche allumée, Octavio rampe, observe et planifie. La cabane est devenue un quartier général.",
+        imageLabel: "Intérieur de la cabane, lumière de poche",
+        motion: "zoom-out"
+      },
+      {
+        text: "Dehors, il imagine une bête affamée. LA BALAYEUSE approche.",
+        imageLabel: "La balayeuse vue comme un monstre",
+        motion: "pan-right"
+      },
+      {
+        text: "Le drap tremble. Octavio retient son souffle. Puis tout s'arrête. Silence.",
+        imageLabel: "Coin de drap aspiré, suspense",
+        motion: "zoom-in"
+      },
+      {
+        text: "Maman propose enfin de jouer au soccer. Octavio sourit: la mission ne peut pas attendre.",
+        imageLabel: "Octavio referme l'entrée de sa forteresse",
         motion: "pan-right"
       }
     ]

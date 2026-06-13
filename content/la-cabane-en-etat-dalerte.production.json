@@ -1,0 +1,149 @@
+{
+  "storyId": "la-cabane-en-etat-dalerte",
+  "title": "La cabane en état d'alerte",
+  "language": "fr-CA",
+  "format": {
+    "printAspectRatio": "4:5 portrait",
+    "webAspectRatio": "16:9 safe crop from same artwork",
+    "recommendedCanvas": "3200x4000 px, keep action centered with 12% safe margin",
+    "textPolicy": "No text inside generated images. App overlays the story text."
+  },
+  "visualContinuity": {
+    "style": "premium children's picture-book illustration, cinematic but soft, tactile paper texture, warm household light, gentle depth of field, expressive faces, clean shapes, no horror, no cluttered realism",
+    "palette": "warm maple wood, cream sheets, muted teal shadows, amber lamp light, small accents of red soccer ball and blue pajamas",
+    "cameraLanguage": "low child-eye camera, cozy closeups, occasional wide room establishing shots, suspense created with scale and shadow rather than fear",
+    "negativePrompt": "photorealistic, 3D render, anime, scary monster, sharp teeth, messy typography, extra fingers, distorted face, inconsistent clothing, different bedroom, different toy designs, visible text"
+  },
+  "characterBible": {
+    "octavio": {
+      "identity": "curious 6-year-old boy, expressive, imaginative, energetic",
+      "appearance": "warm light-brown skin, round cheeks, large dark-brown eyes, short wavy dark-brown hair with one loose curl on the forehead",
+      "wardrobe": "soft blue pajama top with tiny white stars, charcoal jogger pants, red socks",
+      "behavior": "starts bored and unseen, becomes focused and heroic inside his imagination",
+      "consistencyPrompt": "Octavio must keep the same face, haircut, blue star pajama top, charcoal pants, and red socks in every image."
+    },
+    "maman": {
+      "identity": "Octavio's mother, caring but busy cleaning",
+      "appearance": "warm medium-brown skin, dark curly hair tied in a low bun, kind eyes",
+      "wardrobe": "cream sweater, sage green pants, simple house slippers",
+      "behavior": "busy at first, then gentle and available at the end"
+    },
+    "babaou": {
+      "identity": "Octavio's plush monkey, promoted to captain",
+      "appearance": "small tan plush monkey with round ears, stitched smile, tiny red scarf",
+      "rule": "Always show the red scarf when Babaou appears."
+    },
+    "dinosaur": {
+      "identity": "toy dinosaur guarding the fort entrance",
+      "appearance": "small green toy stegosaurus with rounded child-safe shapes"
+    },
+    "messageCar": {
+      "identity": "small car for urgent messages",
+      "appearance": "small yellow toy car with red wheels"
+    }
+  },
+  "environmentBible": {
+    "house": "cozy modern family home, warm wood floors, soft neutral walls, lived-in but tidy",
+    "octavioBedroom": "small bedroom with a natural wood bunk bed, navy rug, toy shelf, white wardrobe full of sheets, soccer ball near door, soft afternoon light from one window",
+    "blanketFort": "cream and pale-blue sheets tied around the bunk bed, pillow floor, flashlight glow, toys arranged like a command center",
+    "vacuum": "ordinary canister or upright vacuum cleaner, visually transformed by Octavio's imagination through shadow and low camera angle, never truly monstrous or frightening"
+  },
+  "imageGenerationFlow": [
+    {
+      "step": 1,
+      "name": "Create character reference sheet",
+      "output": "octavio-reference.png",
+      "prompt": "Character reference sheet for Octavio from 'La cabane en état d'alerte': curious 6-year-old boy, warm light-brown skin, round cheeks, large dark-brown eyes, short wavy dark-brown hair with one loose curl on the forehead, soft blue pajama top with tiny white stars, charcoal jogger pants, red socks. Show front view, three-quarter view, side view, and three emotions: bored, excited, brave. Premium children's picture-book illustration, tactile paper texture, warm soft light, clean white background, no text."
+    },
+    {
+      "step": 2,
+      "name": "Create prop and toy reference sheet",
+      "output": "props-reference.png",
+      "prompt": "Prop reference sheet for a children's picture book: Babaou tan plush monkey with round ears and tiny red scarf, small green rounded stegosaurus toy, small yellow toy car with red wheels, red-and-white soccer ball, silver-gray household vacuum cleaner, cream and pale-blue bed sheets, black flashlight. Same soft premium picture-book illustration style, warm light, clean white background, no text."
+    },
+    {
+      "step": 3,
+      "name": "Create environment reference",
+      "output": "bedroom-reference.png",
+      "prompt": "Environment reference for Octavio's bedroom: cozy child bedroom with natural wood bunk bed, navy rug, toy shelf, white wardrobe full of folded sheets, red-and-white soccer ball near the door, warm wood floor, soft afternoon window light, neutral walls. Premium children's picture-book illustration, cinematic composition, tactile paper texture, no text, no people."
+    },
+    {
+      "step": 4,
+      "name": "Generate final story images",
+      "output": "10 final page illustrations",
+      "promptRule": "For every final image, include the global style, character bible, environment bible, and the exact scene prompt. Generate in 4:5 portrait, then crop center-safe to 16:9 for the web reader."
+    }
+  ],
+  "slides": [
+    {
+      "id": "01-cleaning-day",
+      "appText": "Et c'est reparti. Maman passe la balayeuse à la grandeur de la maison.",
+      "imagePrompt": "Wide child-eye view of a cozy living room and hallway. Maman, wearing a cream sweater and sage green pants, pushes a silver-gray vacuum cleaner across warm wood floors. Octavio stands nearby holding a red-and-white soccer ball, looking hopeful but ignored. Warm afternoon household light, premium children's picture-book illustration, no text.",
+      "motion": "pan-left",
+      "soundCue": "soft vacuum hum"
+    },
+    {
+      "id": "02-bored-octavio",
+      "appText": "Octavio veut jouer au soccer, mais personne n'est disponible. Il n'a rien à faire.",
+      "imagePrompt": "Octavio sits at the edge of the hallway with his soccer ball beside his red socks, shoulders drooped, bored expression. The vacuum cord and soft cleaning activity are visible in the background but Maman is partly out of frame. Cozy home, warm light, same Octavio design, no text.",
+      "motion": "zoom-out",
+      "soundCue": "distant vacuum, quiet room tone"
+    },
+    {
+      "id": "03-the-idea",
+      "appText": "Dans sa chambre, il fixe le plafond. Soudain, une idée apparaît: une cabane.",
+      "imagePrompt": "Octavio lies on his bed in his small bedroom, staring at the ceiling. A subtle warm glow above him suggests a new idea, while the bunk bed, toy shelf, wardrobe, and soccer ball establish the room. Same Octavio outfit, soft cinematic picture-book style, no text.",
+      "motion": "zoom-in",
+      "soundCue": "small magical chime"
+    },
+    {
+      "id": "04-sheet-avalanche",
+      "appText": "En tirant un drap de l'armoire, une avalanche de couvertures lui tombe sur la tête.",
+      "imagePrompt": "Funny action moment: Octavio pulls one cream sheet from a white wardrobe and a playful avalanche of cream and pale-blue sheets tumbles over him. Only his surprised face and red socks peek through the fabric. Bedroom remains consistent, warm light, no text.",
+      "motion": "pan-right",
+      "soundCue": "soft fabric tumble"
+    },
+    {
+      "id": "05-building-fort",
+      "appText": "Il attache les draps à son lit à deux étages. Plus un seul trou: son repère est prêt.",
+      "imagePrompt": "Octavio ties cream and pale-blue sheets around the natural wood bunk bed, creating a blanket fort with no gaps. Clothespins, pillows, and flashlight are visible. He looks focused and proud. Same bedroom layout, premium children's picture-book illustration, no text.",
+      "motion": "zoom-in",
+      "soundCue": "gentle fabric rustle"
+    },
+    {
+      "id": "06-command-team",
+      "appText": "Babaou le singe devient capitaine, le dinosaure surveille l'entrée, et la petite voiture transporte les messages urgents.",
+      "imagePrompt": "Inside the blanket fort command center: Babaou the tan plush monkey with red scarf sits like a captain, green stegosaurus guards the sheet entrance, yellow toy car with red wheels waits on a pillow path. Octavio arranges them carefully by flashlight glow. Cozy, imaginative, no text.",
+      "motion": "pan-left",
+      "soundCue": "small toy taps"
+    },
+    {
+      "id": "07-headquarters",
+      "appText": "Lampe de poche allumée, Octavio rampe, observe et planifie. La cabane est devenue un quartier général.",
+      "imagePrompt": "Low-angle view from inside the blanket fort. Octavio crawls with a black flashlight, brave and concentrated, surrounded by pillows, sheets, Babaou, dinosaur, and toy car. The flashlight creates dramatic but gentle shadows, making the fort feel like a secret headquarters. No text.",
+      "motion": "zoom-out",
+      "soundCue": "muffled room tone, flashlight click"
+    },
+    {
+      "id": "08-vacuum-monster",
+      "appText": "Dehors, il imagine une bête affamée. LA BALAYEUSE approche.",
+      "imagePrompt": "From Octavio's point of view under the sheet entrance: the ordinary silver-gray vacuum cleaner approaches the bedroom, made huge by low camera angle and shadow. It should feel suspenseful but safe and playful, not scary. A glimpse of Maman's slippers behind it. No text.",
+      "motion": "pan-right",
+      "soundCue": "vacuum hum grows louder"
+    },
+    {
+      "id": "09-held-breath",
+      "appText": "Le drap tremble. Octavio retient son souffle. Puis tout s'arrête. Silence.",
+      "imagePrompt": "Close, tense but gentle scene inside the fort: Octavio holds his breath, eyes wide, one hand near Babaou. A corner of the cream sheet is being tugged slightly outward by the vacuum just outside. Flashlight glow, soft shadows, no text.",
+      "motion": "zoom-in",
+      "soundCue": "hum stops, silence"
+    },
+    {
+      "id": "10-mission-continues",
+      "appText": "Maman propose enfin de jouer au soccer. Octavio sourit: la mission ne peut pas attendre.",
+      "imagePrompt": "Warm final scene at the blanket fort entrance. Maman kneels nearby with a kind smile, soccer ball beside her, while Octavio smiles confidently and pulls the sheet entrance closed to protect his fortress. Babaou's red scarf peeks from inside. Cozy room, emotional, no text.",
+      "motion": "pan-right",
+      "soundCue": "soft warm resolve"
+    }
+  ]
+}
