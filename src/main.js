@@ -135,20 +135,21 @@ function renderGallery() {
     <main class="app-shell">
       <header class="topbar">
         <div class="brand" aria-label="Interactive Stories">
-          <span class="brand-mark">Stories</span>
-          <span class="brand-sub">Read like a small film</span>
+          <span class="brand-mark">Kidory</span>
+          <span class="brand-sub">Histoires illustrées</span>
         </div>
-        <span class="pill">${stories.length} stories</span>
+        <button class="round-tool" type="button" aria-label="Shuffle stories">⌘</button>
       </header>
 
       <section class="hero">
         <div class="hero-copy">
-          <p class="kicker">Interactive picture books</p>
-          <h1>Learn through tiny cinematic worlds.</h1>
-          <p>Simple stories, calm motion, large readable text, and print-ready imagery when your real book art is ready.</p>
+          <p class="kicker">Bibliothèque jeunesse</p>
+          <h1>Lire, écouter, imaginer.</h1>
+          <p>Des histoires éducatives courtes avec images, mouvement doux et lecture interactive.</p>
         </div>
 
         <button class="featured cover-${featured.coverTone}" data-story-id="${featured.id}" type="button">
+          <span class="featured-art" aria-hidden="true"></span>
           <span class="featured-content">
             <span class="meta-row">
               <span class="mini-chip">${featured.ageRange}</span>
@@ -156,25 +157,51 @@ function renderGallery() {
             </span>
             <span class="featured-title">${featured.title}</span>
             <span class="featured-summary">${featured.summary}</span>
-            <span class="primary-action">Start story</span>
+            <span class="primary-action">Commencer</span>
           </span>
         </button>
       </section>
 
       <section class="rail-header">
-        <h2>Library</h2>
-        <span>Swipe to browse</span>
+        <h2>Recommandations</h2>
+        <span>${stories.length} livres</span>
       </section>
 
       <section class="story-rail" aria-label="Story gallery">
         ${stories.map(renderStoryCard).join("")}
       </section>
+
+      <section class="people-strip" aria-label="Personnages">
+        <h2>Personnages</h2>
+        <div class="people-row">
+          ${renderPerson("Octavio", "O", "boy")}
+          ${renderPerson("Maman", "M", "mom")}
+          ${renderPerson("Babaou", "B", "monkey")}
+          ${renderPerson("Dino", "D", "dino")}
+        </div>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Navigation">
+        <a href="#" aria-current="page"><span>⌂</span>Accueil</a>
+        <a href="#"><span>⌕</span>Explorer</a>
+        <a href="#"><span>▱</span>Sauvegardés</a>
+        <a href="#"><span>◌</span>Profil</a>
+      </nav>
     </main>
   `;
 
   document.querySelectorAll("[data-story-id]").forEach((button) => {
     button.addEventListener("click", () => openStory(button.dataset.storyId));
   });
+}
+
+function renderPerson(name, initial, tone) {
+  return `
+    <span class="person">
+      <span class="avatar avatar-${tone}">${initial}</span>
+      <span>${name}</span>
+    </span>
+  `;
 }
 
 function renderStoryCard(story) {
@@ -204,14 +231,19 @@ function renderReader() {
     <main class="reader-shell">
       <header class="reader-topbar">
         <button class="circle-button" type="button" data-action="gallery" aria-label="Back to gallery">‹</button>
+        <div class="mode-toggle" aria-label="Reading mode">
+          <span>Audio</span>
+          <strong>Text</strong>
+        </div>
+        <button class="circle-button" type="button" aria-label="Reader settings">⌾</button>
+      </header>
+
+      <section class="reader-heading">
         <div class="reader-meta">
           <span>${story.topic}</span>
           <strong>${story.title}</strong>
         </div>
-        <button class="circle-button" type="button" data-action="sound" aria-label="${state.soundOn ? "Turn sound off" : "Turn sound on"}" aria-pressed="${state.soundOn}">
-          ${state.soundOn ? "♪" : "○"}
-        </button>
-      </header>
+      </section>
 
       <section class="stage" aria-live="polite">
         <div class="scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}" data-slide="${state.slideIndex}"${imageStyle}>
@@ -223,6 +255,18 @@ function renderReader() {
       </section>
 
       <section class="reader-controls" aria-label="Story controls">
+        <div class="reader-slider-row">
+          <span>☼</span>
+          <input data-action="scrub" type="range" min="0" max="${story.slides.length - 1}" value="${state.slideIndex}" aria-label="Story slide" style="--progress: ${progress}%" />
+          <span>☀</span>
+        </div>
+
+        <div class="reader-palette" aria-label="Reader palette">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
         <div class="transport">
           <button class="circle-button" type="button" data-action="prev" aria-label="Previous slide" ${state.slideIndex === 0 ? "disabled" : ""}>‹</button>
           <button class="play-button" type="button" data-action="play">${state.isPlaying ? "Pause" : "Play"}</button>
@@ -236,6 +280,9 @@ function renderReader() {
         </div>
 
         <div class="reader-options">
+          <button class="sound-chip" type="button" data-action="sound" aria-pressed="${state.soundOn}">
+            ${state.soundOn ? "Son activé" : "Son doux"}
+          </button>
           <select data-action="motion" aria-label="Motion style">
             <option value="story" ${state.motion === "story" ? "selected" : ""}>Auto motion</option>
             <option value="pan-left" ${state.motion === "pan-left" ? "selected" : ""}>Drift left</option>
