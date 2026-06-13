@@ -130,17 +130,43 @@ function stopAmbientNoise() {
 }
 
 function renderGallery() {
+  const featured = stories[0];
   app.innerHTML = `
-    <main class="shell">
-      <section class="intro">
-        <div>
-          <p class="eyebrow">Interactive picture-book library</p>
-          <h1>Educational stories built for reading, listening, and visual play.</h1>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand" aria-label="Interactive Stories">
+          <span class="brand-mark">Stories</span>
+          <span class="brand-sub">Read like a small film</span>
         </div>
-        <p class="intro-copy">Choose a story to preview the reader experience. Each story is already structured around print-book images, animated slide movement, narration text, a playback timeline, and optional ambient sound.</p>
+        <span class="pill">${stories.length} stories</span>
+      </header>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="kicker">Interactive picture books</p>
+          <h1>Learn through tiny cinematic worlds.</h1>
+          <p>Simple stories, calm motion, large readable text, and print-ready imagery when your real book art is ready.</p>
+        </div>
+
+        <button class="featured cover-${featured.coverTone}" data-story-id="${featured.id}" type="button">
+          <span class="featured-content">
+            <span class="meta-row">
+              <span class="mini-chip">${featured.ageRange}</span>
+              <span class="mini-chip">${featured.duration}</span>
+            </span>
+            <span class="featured-title">${featured.title}</span>
+            <span class="featured-summary">${featured.summary}</span>
+            <span class="primary-action">Start story</span>
+          </span>
+        </button>
       </section>
 
-      <section class="story-grid" aria-label="Story gallery">
+      <section class="rail-header">
+        <h2>Library</h2>
+        <span>Swipe to browse</span>
+      </section>
+
+      <section class="story-rail" aria-label="Story gallery">
         ${stories.map(renderStoryCard).join("")}
       </section>
     </main>
@@ -154,18 +180,14 @@ function renderGallery() {
 function renderStoryCard(story) {
   return `
     <button class="story-card" data-story-id="${story.id}" type="button">
-      <span class="cover cover-${story.coverTone}" aria-hidden="true">
-        <span class="cover-shape"></span>
-        <span class="cover-title">${story.title}</span>
-      </span>
-      <span class="card-body">
+      <span class="story-poster cover-${story.coverTone}" aria-hidden="true"></span>
+      <span class="card-content">
         <span class="meta-row">
-          <span>${story.ageRange}</span>
-          <span>${story.duration}</span>
+          <span class="mini-chip">${story.ageRange}</span>
+          <span class="mini-chip">${story.duration}</span>
         </span>
         <span class="card-title">${story.title}</span>
         <span class="card-summary">${story.summary}</span>
-        <span class="topic">${story.topic}</span>
       </span>
     </button>
   `;
@@ -180,46 +202,46 @@ function renderReader() {
   app.innerHTML = `
     <main class="reader-shell">
       <header class="reader-topbar">
-        <button class="icon-button wide" type="button" data-action="gallery">Gallery</button>
-        <div class="reader-title">
+        <button class="circle-button" type="button" data-action="gallery" aria-label="Back to gallery">‹</button>
+        <div class="reader-meta">
           <span>${story.topic}</span>
-          <h1>${story.title}</h1>
+          <strong>${story.title}</strong>
         </div>
-        <button class="icon-button" type="button" data-action="sound" aria-pressed="${state.soundOn}">
-          ${state.soundOn ? "Sound on" : "Sound off"}
+        <button class="circle-button" type="button" data-action="sound" aria-label="${state.soundOn ? "Turn sound off" : "Turn sound on"}" aria-pressed="${state.soundOn}">
+          ${state.soundOn ? "♪" : "○"}
         </button>
       </header>
 
       <section class="stage" aria-live="polite">
-        <div class="page-image cover-${story.coverTone} motion-${motion}" data-slide="${state.slideIndex}">
-          <div class="page-text">${slide.text}</div>
-          <div class="placeholder-scene">
-            <span>${slide.imageLabel}</span>
+        <div class="scene-art cover-${story.coverTone} motion-${motion}" data-slide="${state.slideIndex}">
+          <div class="scene-copy">
+            <p>${slide.text}</p>
+            <span class="scene-label">${slide.imageLabel}</span>
           </div>
         </div>
       </section>
 
       <section class="reader-controls" aria-label="Story controls">
-        <div class="control-row">
-          <button class="icon-button" type="button" data-action="prev" ${state.slideIndex === 0 ? "disabled" : ""}>Prev</button>
+        <div class="transport">
+          <button class="circle-button" type="button" data-action="prev" aria-label="Previous slide" ${state.slideIndex === 0 ? "disabled" : ""}>‹</button>
           <button class="play-button" type="button" data-action="play">${state.isPlaying ? "Pause" : "Play"}</button>
-          <button class="icon-button" type="button" data-action="next" ${state.slideIndex === story.slides.length - 1 ? "disabled" : ""}>Next</button>
-          <label class="motion-select">
-            Motion
-            <select data-action="motion">
-              <option value="story" ${state.motion === "story" ? "selected" : ""}>By slide</option>
-              <option value="pan-left" ${state.motion === "pan-left" ? "selected" : ""}>Slide left</option>
-              <option value="pan-right" ${state.motion === "pan-right" ? "selected" : ""}>Slide right</option>
-              <option value="zoom-in" ${state.motion === "zoom-in" ? "selected" : ""}>Zoom in</option>
-              <option value="zoom-out" ${state.motion === "zoom-out" ? "selected" : ""}>Zoom out</option>
-            </select>
-          </label>
+          <button class="circle-button" type="button" data-action="next" aria-label="Next slide" ${state.slideIndex === story.slides.length - 1 ? "disabled" : ""}>›</button>
         </div>
 
         <div class="timeline">
           <span>${state.slideIndex + 1}</span>
           <input data-action="scrub" type="range" min="0" max="${story.slides.length - 1}" value="${state.slideIndex}" aria-label="Story slide" style="--progress: ${progress}%" />
           <span>${story.slides.length}</span>
+        </div>
+
+        <div class="reader-options">
+          <select data-action="motion" aria-label="Motion style">
+            <option value="story" ${state.motion === "story" ? "selected" : ""}>Auto motion</option>
+            <option value="pan-left" ${state.motion === "pan-left" ? "selected" : ""}>Drift left</option>
+            <option value="pan-right" ${state.motion === "pan-right" ? "selected" : ""}>Drift right</option>
+            <option value="zoom-in" ${state.motion === "zoom-in" ? "selected" : ""}>Slow zoom in</option>
+            <option value="zoom-out" ${state.motion === "zoom-out" ? "selected" : ""}>Slow zoom out</option>
+          </select>
         </div>
       </section>
     </main>
