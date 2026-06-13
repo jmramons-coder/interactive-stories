@@ -414,8 +414,8 @@ select:focus-visible {
   width: min(100%, 460px);
   margin: 0 auto;
   overflow: hidden;
-  background: #a86f5f;
-  color: #fff8ef;
+  background: #080808;
+  color: #ffffff;
   box-shadow: var(--shadow);
 }
 
@@ -430,8 +430,8 @@ select:focus-visible {
 }
 
 .reader-shell .circle-button {
-  background: rgb(255 255 255 / 10%);
-  color: #fff8ef;
+  background: rgb(0 0 0 / 22%);
+  color: #ffffff;
   box-shadow: none;
   backdrop-filter: blur(16px);
 }
@@ -442,8 +442,9 @@ select:focus-visible {
   min-height: 42px;
   align-items: center;
   border-radius: 999px;
-  background: rgb(95 45 35 / 24%);
+  background: rgb(0 0 0 / 22%);
   padding: 4px;
+  backdrop-filter: blur(16px);
 }
 
 .mode-toggle span,
@@ -459,13 +460,13 @@ select:focus-visible {
 }
 
 .mode-toggle span {
-  color: rgb(255 248 239 / 58%);
+  color: rgb(255 255 255 / 58%);
 }
 
 .mode-toggle strong {
-  background: #4b241a;
-  color: #fff8ef;
-  box-shadow: 0 7px 16px rgb(34 16 11 / 26%);
+  background: #ffffff;
+  color: #111111;
+  box-shadow: 0 7px 16px rgb(0 0 0 / 18%);
 }
 
 .reader-heading {
@@ -481,7 +482,7 @@ select:focus-visible {
 }
 
 .reader-meta span {
-  color: rgb(255 248 239 / 68%);
+  color: rgb(255 255 255 / 70%);
   font-size: 0.78rem;
   font-weight: 850;
   text-transform: uppercase;
@@ -516,7 +517,7 @@ select:focus-visible {
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(180deg, rgb(168 111 95 / 0%) 0 18%, rgb(168 111 95 / 62%) 56%, #a86f5f 100%),
+    linear-gradient(180deg, rgb(0 0 0 / 16%) 0 18%, rgb(0 0 0 / 28%) 52%, rgb(0 0 0 / 76%) 100%),
     radial-gradient(circle at 50% 8%, rgb(255 255 255 / 16%), transparent 12rem);
 }
 
@@ -528,14 +529,14 @@ select:focus-visible {
   align-self: end;
   display: grid;
   gap: 14px;
-  padding: 126px 28px 300px;
+  padding: 126px 28px 150px;
 }
 
 .scene-copy p {
   position: relative;
   margin: 0;
   max-width: 38ch;
-  color: #fff8ef;
+  color: #ffffff;
   font-size: clamp(1.18rem, 5.4vw, 1.78rem);
   font-weight: 650;
   line-height: 1.35;
@@ -544,7 +545,7 @@ select:focus-visible {
 .scene-copy p::first-letter {
   float: left;
   padding-right: 8px;
-  color: #fff8ef;
+  color: #ffffff;
   font-size: 4.4rem;
   font-weight: 900;
   line-height: 0.82;
@@ -553,8 +554,8 @@ select:focus-visible {
 .scene-label {
   width: fit-content;
   border-radius: 999px;
-  background: rgb(75 36 26 / 30%);
-  color: rgb(255 248 239 / 84%);
+  background: rgb(0 0 0 / 30%);
+  color: rgb(255 255 255 / 84%);
   padding: 8px 12px;
   font-size: 0.78rem;
   font-weight: 800;
@@ -563,108 +564,47 @@ select:focus-visible {
 .reader-controls {
   position: fixed;
   right: 50%;
-  bottom: 0;
+  bottom: max(16px, env(safe-area-inset-bottom));
   z-index: 35;
-  display: grid;
-  gap: 13px;
-  width: min(100%, 460px);
+  width: min(calc(100% - 28px), 432px);
   transform: translateX(50%);
-  border-radius: 34px 34px 0 0;
-  background: #fffdf8;
-  color: var(--ink);
-  padding: 20px 24px max(20px, env(safe-area-inset-bottom));
-  box-shadow: 0 -18px 46px rgb(49 24 18 / 22%);
-}
-
-.reader-slider-row,
-.timeline,
-.transport,
-.reader-options {
-  display: grid;
-  align-items: center;
-  gap: 12px;
-}
-
-.reader-slider-row,
-.timeline {
-  grid-template-columns: auto 1fr auto;
-}
-
-.reader-slider-row span {
-  color: #1c1815;
-  font-size: 1rem;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 34%);
+  color: #ffffff;
+  padding: 10px 12px;
+  box-shadow: 0 14px 40px rgb(0 0 0 / 26%);
+  backdrop-filter: blur(18px);
 }
 
 input[type="range"] {
   width: 100%;
-  accent-color: #111111;
-}
-
-.reader-palette {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.reader-palette span {
-  height: 36px;
-  border-radius: 10px;
-}
-
-.reader-palette span:nth-child(1) {
-  background: #9a5c4d;
-}
-
-.reader-palette span:nth-child(2) {
-  background: #704035;
-}
-
-.reader-palette span:nth-child(3) {
-  background: #4b241a;
+  accent-color: #ffffff;
 }
 
 .transport {
-  grid-template-columns: 48px 1fr 48px;
-}
-
-.transport .circle-button {
-  background: #eee;
-  color: #111;
-}
-
-.transport .circle-button:disabled {
-  opacity: 0.38;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
 }
 
 .play-button {
-  min-height: 50px;
-  border-radius: 16px;
-  background: #111111;
-  color: #ffffff;
-  font-size: 0.98rem;
+  min-width: 78px;
+  min-height: 42px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111111;
+  font-size: 0.9rem;
   font-weight: 900;
 }
 
-.timeline {
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 820;
-}
-
-.reader-options {
-  grid-template-columns: 1fr 1fr;
-}
-
-.sound-chip,
-.reader-options select {
-  min-height: 38px;
-  border: 0;
-  border-radius: 999px;
-  background: #f0eee9;
-  color: #1b1714;
-  padding: 0 12px;
+.slide-count {
+  min-width: 42px;
+  color: rgb(255 255 255 / 82%);
   font-size: 0.78rem;
   font-weight: 850;
+  text-align: right;
 }
 
 .cover-cabane {
@@ -755,7 +695,6 @@ input[type="range"] {
     border-radius: var(--radius);
   }
 
-  .reader-controls,
   .bottom-nav {
     width: 420px;
   }
@@ -771,8 +710,12 @@ input[type="range"] {
     gap: 10px;
   }
 
-  .reader-options {
-    grid-template-columns: 1fr;
+  .reader-controls {
+    width: min(calc(100% - 20px), 432px);
+  }
+
+  .play-button {
+    min-width: 68px;
   }
 }
 

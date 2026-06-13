@@ -255,52 +255,17 @@ function renderReader() {
       </section>
 
       <section class="reader-controls" aria-label="Story controls">
-        <div class="reader-slider-row">
-          <span>☼</span>
-          <input data-action="scrub" type="range" min="0" max="${story.slides.length - 1}" value="${state.slideIndex}" aria-label="Story slide" style="--progress: ${progress}%" />
-          <span>☀</span>
-        </div>
-
-        <div class="reader-palette" aria-label="Reader palette">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-
-        <div class="transport">
-          <button class="circle-button" type="button" data-action="prev" aria-label="Previous slide" ${state.slideIndex === 0 ? "disabled" : ""}>‹</button>
+        <div class="transport minimal">
           <button class="play-button" type="button" data-action="play">${state.isPlaying ? "Pause" : "Play"}</button>
-          <button class="circle-button" type="button" data-action="next" aria-label="Next slide" ${state.slideIndex === story.slides.length - 1 ? "disabled" : ""}>›</button>
-        </div>
-
-        <div class="timeline">
-          <span>${state.slideIndex + 1}</span>
           <input data-action="scrub" type="range" min="0" max="${story.slides.length - 1}" value="${state.slideIndex}" aria-label="Story slide" style="--progress: ${progress}%" />
-          <span>${story.slides.length}</span>
-        </div>
-
-        <div class="reader-options">
-          <button class="sound-chip" type="button" data-action="sound" aria-pressed="${state.soundOn}">
-            ${state.soundOn ? "Son activé" : "Son doux"}
-          </button>
-          <select data-action="motion" aria-label="Motion style">
-            <option value="story" ${state.motion === "story" ? "selected" : ""}>Auto motion</option>
-            <option value="pan-left" ${state.motion === "pan-left" ? "selected" : ""}>Drift left</option>
-            <option value="pan-right" ${state.motion === "pan-right" ? "selected" : ""}>Drift right</option>
-            <option value="zoom-in" ${state.motion === "zoom-in" ? "selected" : ""}>Slow zoom in</option>
-            <option value="zoom-out" ${state.motion === "zoom-out" ? "selected" : ""}>Slow zoom out</option>
-          </select>
+          <span class="slide-count">${state.slideIndex + 1}/${story.slides.length}</span>
         </div>
       </section>
     </main>
   `;
 
   document.querySelector("[data-action='gallery']").addEventListener("click", goToGallery);
-  document.querySelector("[data-action='sound']").addEventListener("click", toggleSound);
-  document.querySelector("[data-action='prev']").addEventListener("click", () => moveSlide(-1));
-  document.querySelector("[data-action='next']").addEventListener("click", () => moveSlide(1));
   document.querySelector("[data-action='play']").addEventListener("click", togglePlayback);
-  document.querySelector("[data-action='motion']").addEventListener("change", (event) => setState({ motion: event.target.value }));
   document.querySelector("[data-action='scrub']").addEventListener("input", (event) => {
     stopPlayback();
     setState({ slideIndex: Number(event.target.value) });
