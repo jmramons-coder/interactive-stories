@@ -379,18 +379,18 @@ select:focus-visible {
   z-index: 25;
   display: flex;
   align-items: center;
-  padding: max(38px, env(safe-area-inset-top)) 18px 8px;
+  padding: max(20px, env(safe-area-inset-top)) 16px 4px;
 }
 
 .library-button {
   display: inline-flex;
-  min-height: 42px;
+  min-height: 34px;
   align-items: center;
   border-radius: 999px;
   background: rgb(0 0 0 / 26%);
   color: #ffffff;
-  padding: 0 15px 0 12px;
-  font-size: 0.9rem;
+  padding: 0 12px 0 10px;
+  font-size: 0.78rem;
   font-weight: 850;
   line-height: 1;
   box-shadow: none;
@@ -400,27 +400,27 @@ select:focus-visible {
 .reader-heading {
   position: relative;
   z-index: 20;
-  padding: 6px 26px 12px;
+  padding: 0 22px 6px;
   text-align: center;
 }
 
 .reader-meta {
   display: grid;
-  gap: 6px;
+  gap: 3px;
 }
 
 .reader-meta span {
   color: rgb(255 255 255 / 70%);
-  font-size: 0.78rem;
+  font-size: 0.66rem;
   font-weight: 850;
   text-transform: uppercase;
 }
 
 .reader-meta strong {
-  font-size: clamp(1.8rem, 9vw, 2.65rem);
+  font-size: clamp(1.15rem, 5.8vw, 1.8rem);
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 0.94;
+  line-height: 1;
 }
 
 .stage {
@@ -457,7 +457,7 @@ select:focus-visible {
   align-self: end;
   display: grid;
   gap: 14px;
-  padding: 126px 28px 150px;
+  padding: 96px 26px 108px;
 }
 
 .scene-copy p {
@@ -492,16 +492,16 @@ select:focus-visible {
 .reader-controls {
   position: fixed;
   right: 50%;
-  bottom: max(16px, env(safe-area-inset-bottom));
+  bottom: max(10px, env(safe-area-inset-bottom));
   z-index: 35;
-  width: min(calc(100% - 28px), 432px);
+  width: min(calc(100% - 36px), 360px);
   transform: translateX(50%);
   border: 1px solid rgb(255 255 255 / 18%);
   border-radius: 999px;
   background: rgb(0 0 0 / 34%);
   color: #ffffff;
-  padding: 10px 12px;
-  box-shadow: 0 14px 40px rgb(0 0 0 / 26%);
+  padding: 6px 8px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 24%);
   backdrop-filter: blur(18px);
 }
 
@@ -514,23 +514,23 @@ input[type="range"] {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .play-button {
-  min-width: 78px;
-  min-height: 42px;
+  min-width: 60px;
+  min-height: 32px;
   border-radius: 999px;
   background: #ffffff;
   color: #111111;
-  font-size: 0.9rem;
+  font-size: 0.76rem;
   font-weight: 900;
 }
 
 .slide-count {
-  min-width: 42px;
+  min-width: 34px;
   color: rgb(255 255 255 / 82%);
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 850;
   text-align: right;
 }
@@ -627,11 +627,11 @@ input[type="range"] {
   }
 
   .reader-controls {
-    width: min(calc(100% - 20px), 432px);
+    width: min(calc(100% - 28px), 360px);
   }
 
   .play-button {
-    min-width: 68px;
+    min-width: 56px;
   }
 }
 

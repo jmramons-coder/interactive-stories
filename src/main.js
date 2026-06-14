@@ -28,14 +28,20 @@ function setState(patch) {
   render();
 }
 
+function resetViewport() {
+  requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+}
+
 function goToGallery() {
   stopPlayback();
   setState({ route: "gallery", slideIndex: 0 });
+  resetViewport();
 }
 
 function openStory(id) {
   stopPlayback();
   setState({ route: "reader", storyId: id, slideIndex: 0 });
+  resetViewport();
 }
 
 function moveSlide(direction) {
@@ -72,7 +78,7 @@ function togglePlayback() {
     }
     state.slideIndex += 1;
     render();
-  }, 3200);
+  }, 5600);
   render();
 }
 
