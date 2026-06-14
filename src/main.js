@@ -131,6 +131,7 @@ function stopAmbientNoise() {
 
 function renderGallery() {
   const featured = stories[0];
+  const featuredCoverStyle = featured.coverImage ? ` style="background-image: url('${featured.coverImage}')"` : "";
   app.innerHTML = `
     <main class="app-shell">
       <header class="topbar">
@@ -148,8 +149,8 @@ function renderGallery() {
           <p>Des histoires éducatives courtes avec images, mouvement doux et lecture interactive.</p>
         </div>
 
-        <button class="featured cover-${featured.coverTone}" data-story-id="${featured.id}" type="button">
-          <span class="featured-art" aria-hidden="true"></span>
+        <button class="featured cover-${featured.coverTone}${featured.coverImage ? " has-cover" : ""}" data-story-id="${featured.id}" type="button">
+          <span class="featured-art" aria-hidden="true"${featuredCoverStyle}></span>
           <span class="featured-content">
             <span class="meta-row">
               <span class="mini-chip">${featured.ageRange}</span>
@@ -180,13 +181,6 @@ function renderGallery() {
           ${renderPerson("Dino", "D", "dino")}
         </div>
       </section>
-
-      <nav class="bottom-nav" aria-label="Navigation">
-        <a href="#" aria-current="page"><span>⌂</span>Accueil</a>
-        <a href="#"><span>⌕</span>Explorer</a>
-        <a href="#"><span>▱</span>Sauvegardés</a>
-        <a href="#"><span>◌</span>Profil</a>
-      </nav>
     </main>
   `;
 
@@ -205,9 +199,10 @@ function renderPerson(name, initial, tone) {
 }
 
 function renderStoryCard(story) {
+  const coverStyle = story.coverImage ? ` style="background-image: url('${story.coverImage}')"` : "";
   return `
-    <button class="story-card" data-story-id="${story.id}" type="button">
-      <span class="story-poster cover-${story.coverTone}" aria-hidden="true"></span>
+    <button class="story-card ${story.coverImage ? "has-cover" : ""}" data-story-id="${story.id}" type="button">
+      <span class="story-poster cover-${story.coverTone}" aria-hidden="true"${coverStyle}></span>
       <span class="card-content">
         <span class="meta-row">
           <span class="mini-chip">${story.ageRange}</span>
@@ -230,12 +225,7 @@ function renderReader() {
   app.innerHTML = `
     <main class="reader-shell">
       <header class="reader-topbar">
-        <button class="circle-button" type="button" data-action="gallery" aria-label="Back to gallery">‹</button>
-        <div class="mode-toggle" aria-label="Reading mode">
-          <span>Audio</span>
-          <strong>Text</strong>
-        </div>
-        <button class="circle-button" type="button" aria-label="Reader settings">⌾</button>
+        <button class="library-button" type="button" data-action="gallery" aria-label="Back to library">‹ Library</button>
       </header>
 
       <section class="reader-heading">

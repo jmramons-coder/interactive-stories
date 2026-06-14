@@ -41,7 +41,7 @@ Props:
 4. Generate the 10 story illustrations using the references and prompts from `content/la-cabane-en-etat-dalerte.production.json`.
 5. Export each image twice:
    - Print: `assets/stories/la-cabane-en-etat-dalerte/print/01-cleaning-day.png`
-   - Web: `assets/stories/la-cabane-en-etat-dalerte/web/01-cleaning-day.png`
+   - Web: `assets/stories/la-cabane-en-etat-dalerte/web/01-cleaning-day.jpg`
 
 ## App Script
 
@@ -67,7 +67,7 @@ Use these stable image IDs:
 Once images are generated, add an `image` field to each slide in `src/stories.js`, for example:
 
 ```js
-image: "/assets/stories/la-cabane-en-etat-dalerte/web/01-cleaning-day.png"
+image: "/assets/stories/la-cabane-en-etat-dalerte/web/01-cleaning-day.jpg"
 ```
 
 Then the reader can use the real bitmap as the scene background instead of the current gradient placeholder.
