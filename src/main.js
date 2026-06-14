@@ -92,6 +92,49 @@ function toggleStoryText() {
   setState({ textVisible: !state.textVisible });
 }
 
+function fullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement;
+}
+
+function fullscreenTarget() {
+  return document.documentElement;
+}
+
+function updateFullscreenButton() {
+  const button = document.querySelector("[data-action='fullscreen']");
+  if (!button) {
+    return;
+  }
+
+  const isFullscreen = Boolean(fullscreenElement());
+  button.setAttribute("aria-pressed", String(isFullscreen));
+  button.setAttribute("aria-label", isFullscreen ? "Exit full screen" : "Enter full screen");
+}
+
+async function toggleFullscreen() {
+  const activeElement = fullscreenElement();
+
+  try {
+    if (activeElement) {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+      return;
+    }
+
+    const target = fullscreenTarget();
+    if (target.requestFullscreen) {
+      await target.requestFullscreen();
+    } else if (target.webkitRequestFullscreen) {
+      target.webkitRequestFullscreen();
+    }
+  } finally {
+    updateFullscreenButton();
+  }
+}
+
 function toggleSound() {
   state.soundOn = !state.soundOn;
   if (state.soundOn) {
@@ -226,6 +269,9 @@ function renderReader() {
           <span>${story.topic}</span>
           <strong>${story.title}</strong>
         </div>
+        <button class="fullscreen-button" type="button" data-action="fullscreen" aria-label="Enter full screen" aria-pressed="false">
+          <span class="fullscreen-icon" aria-hidden="true"></span>
+        </button>
       </header>
 
       <section class="stage" aria-live="polite">
@@ -252,12 +298,14 @@ function renderReader() {
   `;
 
   document.querySelector("[data-action='gallery']").addEventListener("click", goToGallery);
+  document.querySelector("[data-action='fullscreen']").addEventListener("click", toggleFullscreen);
   document.querySelector("[data-action='play']").addEventListener("click", togglePlayback);
   document.querySelector("[data-action='toggle-text']").addEventListener("click", toggleStoryText);
   document.querySelector("[data-action='scrub']").addEventListener("input", (event) => {
     stopPlayback();
     setState({ slideIndex: Number(event.target.value) });
   });
+  updateFullscreenButton();
 }
 
 function render() {
@@ -287,5 +335,8 @@ document.addEventListener("keydown", (event) => {
     togglePlayback();
   }
 });
+
+document.addEventListener("fullscreenchange", updateFullscreenButton);
+document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
 
 render();

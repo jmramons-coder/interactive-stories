@@ -321,7 +321,8 @@ select:focus-visible {
   backdrop-filter: blur(20px);
 }
 
-.library-button {
+.library-button,
+.fullscreen-button {
   position: relative;
   z-index: 2;
   display: inline-flex;
@@ -335,6 +336,28 @@ select:focus-visible {
   font-weight: 850;
   line-height: 1;
   box-shadow: none;
+}
+
+.fullscreen-button {
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: 8px;
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+
+.fullscreen-icon {
+  position: relative;
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+}
+
+.fullscreen-button[aria-pressed="true"] .fullscreen-icon {
+  transform: scale(0.86);
 }
 
 .reader-title {
@@ -754,10 +777,18 @@ input[type="range"]::-moz-range-thumb {
     padding: max(10px, env(safe-area-inset-top)) 18px 8px;
   }
 
-  .library-button {
+  .library-button,
+  .fullscreen-button {
     min-height: 32px;
-    padding: 0 11px 0 9px;
     font-size: 0.74rem;
+  }
+
+  .library-button {
+    padding: 0 11px 0 9px;
+  }
+
+  .fullscreen-button {
+    width: 32px;
   }
 
   .reader-title span {
