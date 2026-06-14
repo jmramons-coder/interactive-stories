@@ -69,10 +69,15 @@ function togglePlayback() {
     return;
   }
 
+  const story = selectedStory();
+  if (state.slideIndex >= story.slides.length - 1) {
+    state.slideIndex = 0;
+  }
+
   state.isPlaying = true;
   playTimer = setInterval(() => {
-    const story = selectedStory();
-    if (state.slideIndex >= story.slides.length - 1) {
+    const activeStory = selectedStory();
+    if (state.slideIndex >= activeStory.slides.length - 1) {
       stopPlayback();
       render();
       return;
@@ -211,19 +216,17 @@ function renderReader() {
   const motion = state.motion === "story" ? slide.motion : state.motion;
   const progress = story.slides.length === 1 ? 100 : (state.slideIndex / (story.slides.length - 1)) * 100;
   const imageStyle = slide.image ? ` style="--slide-image: url('${slide.image}')"` : "";
+  const playLabel = state.isPlaying ? "Pause story" : "Play story";
 
   app.innerHTML = `
-    <main class="reader-shell">
+    <main class="reader-shell ${state.isPlaying ? "is-playing" : ""}">
       <header class="reader-topbar">
         <button class="library-button" type="button" data-action="gallery" aria-label="Back to library">‹ Library</button>
-      </header>
-
-      <section class="reader-heading">
-        <div class="reader-meta">
+        <div class="reader-title">
           <span>${story.topic}</span>
           <strong>${story.title}</strong>
         </div>
-      </section>
+      </header>
 
       <section class="stage" aria-live="polite">
         <div class="scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}" data-slide="${state.slideIndex}"${imageStyle}>
@@ -236,7 +239,10 @@ function renderReader() {
 
       <section class="reader-controls" aria-label="Story controls">
         <div class="transport minimal">
-          <button class="play-button" type="button" data-action="play">${state.isPlaying ? "Pause" : "Play"}</button>
+          <button class="play-button ${state.isPlaying ? "is-playing" : ""}" type="button" data-action="play" aria-label="${playLabel}" aria-pressed="${state.isPlaying}">
+            <span class="play-icon" aria-hidden="true"></span>
+            <span class="play-text">${state.isPlaying ? "Pause" : "Play"}</span>
+          </button>
           <button class="text-toggle" type="button" data-action="toggle-text" aria-pressed="${state.textVisible}" aria-label="${state.textVisible ? "Hide story text" : "Show story text"}">Aa</button>
           <input data-action="scrub" type="range" min="0" max="${story.slides.length - 1}" value="${state.slideIndex}" aria-label="Story slide" style="--progress: ${progress}%" />
           <span class="slide-count">${state.slideIndex + 1}/${story.slides.length}</span>
@@ -255,6 +261,7 @@ function renderReader() {
 }
 
 function render() {
+  document.body.dataset.route = state.route;
   if (state.route === "gallery") {
     renderGallery();
   } else {
