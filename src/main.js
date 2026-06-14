@@ -150,7 +150,6 @@ function renderGallery() {
           <span class="brand-mark">Kidory</span>
           <span class="brand-sub">Histoires illustrées</span>
         </div>
-        <button class="round-tool" type="button" aria-label="Shuffle stories">⌘</button>
       </header>
 
       <section class="hero">
@@ -176,21 +175,10 @@ function renderGallery() {
 
       <section class="rail-header">
         <h2>Recommandations</h2>
-        <span>${stories.length} livres</span>
       </section>
 
       <section class="story-rail" aria-label="Story gallery">
         ${stories.map(renderStoryCard).join("")}
-      </section>
-
-      <section class="people-strip" aria-label="Personnages">
-        <h2>Personnages</h2>
-        <div class="people-row">
-          ${renderPerson("Octavio", "O", "boy")}
-          ${renderPerson("Maman", "M", "mom")}
-          ${renderPerson("Babaou", "B", "monkey")}
-          ${renderPerson("Dino", "D", "dino")}
-        </div>
       </section>
     </main>
   `;
@@ -198,15 +186,6 @@ function renderGallery() {
   document.querySelectorAll("[data-story-id]").forEach((button) => {
     button.addEventListener("click", () => openStory(button.dataset.storyId));
   });
-}
-
-function renderPerson(name, initial, tone) {
-  return `
-    <span class="person">
-      <span class="avatar avatar-${tone}">${initial}</span>
-      <span>${name}</span>
-    </span>
-  `;
 }
 
 function renderStoryCard(story) {
