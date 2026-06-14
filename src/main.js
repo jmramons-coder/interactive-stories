@@ -4,6 +4,7 @@ const state = {
   route: "gallery",
   storyId: stories[0].id,
   slideIndex: 0,
+  previousSlideIndex: 0,
   isPlaying: false,
   soundOn: false,
   motion: "story",
@@ -24,7 +25,14 @@ function currentSlide() {
   return selectedStory().slides[state.slideIndex];
 }
 
+function previousSlide() {
+  return selectedStory().slides[state.previousSlideIndex] || currentSlide();
+}
+
 function setState(patch) {
+  if (Number.isInteger(patch.slideIndex) && patch.slideIndex !== state.slideIndex) {
+    state.previousSlideIndex = state.slideIndex;
+  }
   Object.assign(state, patch);
   render();
 }
@@ -35,13 +43,13 @@ function resetViewport() {
 
 function goToGallery() {
   stopPlayback();
-  setState({ route: "gallery", slideIndex: 0 });
+  setState({ route: "gallery", slideIndex: 0, previousSlideIndex: 0 });
   resetViewport();
 }
 
 function openStory(id) {
   stopPlayback();
-  setState({ route: "reader", storyId: id, slideIndex: 0 });
+  setState({ route: "reader", storyId: id, slideIndex: 0, previousSlideIndex: 0 });
   resetViewport();
 }
 
@@ -71,6 +79,7 @@ function togglePlayback() {
 
   const story = selectedStory();
   if (state.slideIndex >= story.slides.length - 1) {
+    state.previousSlideIndex = state.slideIndex;
     state.slideIndex = 0;
   }
 
@@ -82,8 +91,7 @@ function togglePlayback() {
       render();
       return;
     }
-    state.slideIndex += 1;
-    render();
+    setState({ slideIndex: state.slideIndex + 1 });
   }, 5600);
   render();
 }
@@ -256,9 +264,11 @@ function renderStoryCard(story) {
 function renderReader() {
   const story = selectedStory();
   const slide = currentSlide();
+  const priorSlide = previousSlide();
   const motion = state.motion === "story" ? slide.motion : state.motion;
   const progress = story.slides.length === 1 ? 100 : (state.slideIndex / (story.slides.length - 1)) * 100;
-  const imageStyle = slide.image ? ` style="--slide-image: url('${slide.image}')"` : "";
+  const previousImage = priorSlide.image || slide.image;
+  const imageStyle = slide.image ? ` style="--slide-image: url('${slide.image}'); --previous-slide-image: url('${previousImage}')"` : "";
   const playLabel = state.isPlaying ? "Pause story" : "Play story";
 
   app.innerHTML = `

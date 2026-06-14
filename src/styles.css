@@ -401,7 +401,7 @@ select:focus-visible {
   min-height: 100svh;
   overflow: hidden;
   isolation: isolate;
-  animation: sceneReveal 420ms ease both;
+  background: var(--previous-slide-image) center / cover no-repeat;
 }
 
 .scene-art::before {
@@ -420,6 +420,7 @@ select:focus-visible {
 
 .scene-art.has-image::before {
   background: var(--slide-image) center / cover no-repeat;
+  animation: imageFade 520ms ease both;
 }
 
 .scene-copy {
@@ -701,13 +702,11 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
-@keyframes sceneReveal {
+@keyframes imageFade {
   from {
-    filter: brightness(0.82);
-    opacity: 0.82;
+    opacity: 0;
   }
   to {
-    filter: brightness(1);
     opacity: 1;
   }
 }
