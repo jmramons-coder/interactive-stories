@@ -6,7 +6,8 @@ const state = {
   slideIndex: 0,
   isPlaying: false,
   soundOn: false,
-  motion: "story"
+  motion: "story",
+  textVisible: true
 };
 
 let playTimer = null;
@@ -80,6 +81,10 @@ function togglePlayback() {
     render();
   }, 5600);
   render();
+}
+
+function toggleStoryText() {
+  setState({ textVisible: !state.textVisible });
 }
 
 function toggleSound() {
@@ -243,7 +248,7 @@ function renderReader() {
 
       <section class="stage" aria-live="polite">
         <div class="scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}" data-slide="${state.slideIndex}"${imageStyle}>
-          <div class="scene-copy">
+          <div class="scene-copy ${state.textVisible ? "" : "is-hidden"}">
             <p>${slide.text}</p>
             <span class="scene-label">${slide.imageLabel}</span>
           </div>
@@ -253,6 +258,7 @@ function renderReader() {
       <section class="reader-controls" aria-label="Story controls">
         <div class="transport minimal">
           <button class="play-button" type="button" data-action="play">${state.isPlaying ? "Pause" : "Play"}</button>
+          <button class="text-toggle" type="button" data-action="toggle-text" aria-pressed="${state.textVisible}" aria-label="${state.textVisible ? "Hide story text" : "Show story text"}">Aa</button>
           <input data-action="scrub" type="range" min="0" max="${story.slides.length - 1}" value="${state.slideIndex}" aria-label="Story slide" style="--progress: ${progress}%" />
           <span class="slide-count">${state.slideIndex + 1}/${story.slides.length}</span>
         </div>
@@ -262,6 +268,7 @@ function renderReader() {
 
   document.querySelector("[data-action='gallery']").addEventListener("click", goToGallery);
   document.querySelector("[data-action='play']").addEventListener("click", togglePlayback);
+  document.querySelector("[data-action='toggle-text']").addEventListener("click", toggleStoryText);
   document.querySelector("[data-action='scrub']").addEventListener("input", (event) => {
     stopPlayback();
     setState({ slideIndex: Number(event.target.value) });
