@@ -286,6 +286,8 @@ function renderReader() {
 
       <section class="stage" aria-live="polite">
         <div class="scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}" data-slide="${state.slideIndex}"${imageStyle}>
+          <span class="scene-layer previous-layer" aria-hidden="true"></span>
+          <span class="scene-layer current-layer" aria-hidden="true"></span>
           <div class="scene-copy ${state.textVisible ? "" : "is-hidden"}">
             <p>${slide.text}</p>
             <span class="scene-label">${slide.imageLabel}</span>

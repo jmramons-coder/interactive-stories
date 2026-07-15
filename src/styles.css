@@ -150,8 +150,7 @@ select:focus-visible {
 }
 
 .featured-art,
-.story-poster,
-.scene-art::before {
+.story-poster {
   position: absolute;
   inset: 0;
   z-index: -2;
@@ -401,11 +400,25 @@ select:focus-visible {
   min-height: 100svh;
   overflow: hidden;
   isolation: isolate;
-  background: var(--previous-slide-image) center / cover no-repeat;
+  background: #000000;
 }
 
-.scene-art::before {
-  content: "";
+.scene-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-position: center;
+  background-size: cover;
+  transform: translateZ(0);
+  will-change: opacity;
+}
+
+.previous-layer {
+  background-image: var(--previous-slide-image);
+}
+
+.current-layer {
+  background-image: var(--slide-image);
 }
 
 .scene-art::after {
@@ -419,8 +432,11 @@ select:focus-visible {
 }
 
 .scene-art.has-image::before {
-  background: var(--slide-image) center / cover no-repeat;
-  animation: imageFade 520ms ease both;
+  content: none;
+}
+
+.scene-art.has-image .current-layer {
+  animation: imageFade 620ms ease both;
 }
 
 .scene-copy {
@@ -648,58 +664,6 @@ input[type="range"]::-moz-range-thumb {
 
 .cover-market {
   --story-art: linear-gradient(145deg, #f3f4f5, #dfe2e5);
-}
-
-.motion-pan-left::before {
-  animation: panLeft 10s ease-in-out infinite alternate;
-}
-
-.motion-pan-right::before {
-  animation: panRight 10s ease-in-out infinite alternate;
-}
-
-.motion-zoom-in::before {
-  animation: zoomIn 10s ease-in-out infinite alternate;
-}
-
-.motion-zoom-out::before {
-  animation: zoomOut 10s ease-in-out infinite alternate;
-}
-
-@keyframes panLeft {
-  from {
-    transform: scale(1.08) translateX(2%);
-  }
-  to {
-    transform: scale(1.08) translateX(-2%);
-  }
-}
-
-@keyframes panRight {
-  from {
-    transform: scale(1.08) translateX(-2%);
-  }
-  to {
-    transform: scale(1.08) translateX(2%);
-  }
-}
-
-@keyframes zoomIn {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.1);
-  }
-}
-
-@keyframes zoomOut {
-  from {
-    transform: scale(1.1);
-  }
-  to {
-    transform: scale(1);
-  }
 }
 
 @keyframes imageFade {
