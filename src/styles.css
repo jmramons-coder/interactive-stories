@@ -406,26 +406,35 @@ select:focus-visible {
 .scene-layer {
   position: absolute;
   inset: 0;
-  z-index: -2;
-  background-position: var(--mobile-image-position, center);
-  background-size: cover;
-  transform: translateZ(0);
-  will-change: opacity, background-position;
+  z-index: 0;
+  display: block;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 520ms ease;
+  pointer-events: none;
+  will-change: opacity;
 }
 
-.previous-layer {
-  background-image: var(--previous-slide-image);
+.scene-layer.is-active {
+  z-index: 1;
+  opacity: 1;
 }
 
-.current-layer {
-  background-image: var(--slide-image);
+.scene-layer img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.035) translate3d(-1.5%, 0, 0);
+  animation: mobileImageDrift 14s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 .scene-art::after {
   content: "";
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 2;
   background:
     linear-gradient(180deg, rgb(0 0 0 / 16%) 0 18%, rgb(0 0 0 / 28%) 52%, rgb(0 0 0 / 76%) 100%),
     radial-gradient(circle at 50% 8%, rgb(255 255 255 / 16%), transparent 12rem);
@@ -435,27 +444,23 @@ select:focus-visible {
   content: none;
 }
 
-.scene-art.has-image .current-layer {
-  animation: imageFade 620ms ease both, mobilePanRight 13s ease-in-out 620ms infinite alternate;
-}
-
-.motion-pan-left .current-layer,
-.motion-zoom-out .current-layer {
-  animation-name: imageFade, mobilePanLeft;
-}
-
-.motion-pan-right .current-layer,
-.motion-zoom-in .current-layer {
-  animation-name: imageFade, mobilePanRight;
+.motion-pan-left .scene-layer img,
+.motion-zoom-out .scene-layer img {
+  animation-direction: alternate-reverse;
 }
 
 .scene-copy {
+  position: relative;
+  z-index: 3;
   align-self: end;
   display: grid;
   gap: 10px;
   padding: 92px 24px calc(98px + env(safe-area-inset-bottom));
-  animation: copyReveal 460ms 90ms ease both;
   transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.scene-copy.is-entering {
+  animation: copyReveal 460ms 70ms ease both;
 }
 
 .scene-copy.is-hidden {
@@ -676,15 +681,6 @@ input[type="range"]::-moz-range-thumb {
   --story-art: linear-gradient(145deg, #f3f4f5, #dfe2e5);
 }
 
-@keyframes imageFade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 @keyframes copyReveal {
   from {
     opacity: 0;
@@ -696,21 +692,12 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
-@keyframes mobilePanRight {
+@keyframes mobileImageDrift {
   from {
-    background-position: 42% center;
+    transform: scale(1.035) translate3d(-1.5%, 0, 0);
   }
   to {
-    background-position: 58% center;
-  }
-}
-
-@keyframes mobilePanLeft {
-  from {
-    background-position: 58% center;
-  }
-  to {
-    background-position: 42% center;
+    transform: scale(1.035) translate3d(1.5%, 0, 0);
   }
 }
 
@@ -791,19 +778,12 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .scene-layer {
-    background-position: center;
+    transition-duration: 560ms;
   }
 
-  .scene-art.has-image .current-layer,
-  .motion-pan-left .current-layer,
-  .motion-pan-right .current-layer,
-  .motion-zoom-in .current-layer,
-  .motion-zoom-out .current-layer {
-    animation-name: imageFade;
-    animation-duration: 620ms;
-    animation-delay: 0s;
-    animation-iteration-count: 1;
-    animation-direction: normal;
+  .scene-layer img {
+    transform: none;
+    animation: none;
   }
 
   .scene-copy {
@@ -835,6 +815,18 @@ input[type="range"]::-moz-range-thumb {
 
   .text-toggle {
     min-width: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-layer,
+  .scene-copy {
+    transition-duration: 1ms;
+  }
+
+  .scene-layer img,
+  .scene-copy.is-entering {
+    animation: none;
   }
 }
 

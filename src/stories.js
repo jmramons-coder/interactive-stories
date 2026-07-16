@@ -14,60 +14,70 @@ export const stories = [
         text: "Et c'est reparti. Maman passe la balayeuse à la grandeur de la maison.",
         imageLabel: "Salon familial, Maman avec la balayeuse",
         image: "/assets/stories/la-cabane-en-etat-dalerte/web/01-cleaning-day.jpg",
+        mobileImage: "/assets/stories/la-cabane-en-etat-dalerte/mobile/01-cleaning-day.jpg",
         motion: "pan-left"
       },
       {
         text: "Octavio veut jouer au soccer, mais personne n'est disponible. Il n'a rien à faire.",
         imageLabel: "Octavio avec son ballon, seul dans le couloir",
         image: "/assets/stories/la-cabane-en-etat-dalerte/web/02-bored-octavio.jpg",
+        mobileImage: "/assets/stories/la-cabane-en-etat-dalerte/mobile/02-bored-octavio.jpg",
         motion: "zoom-out"
       },
       {
         text: "Dans sa chambre, il fixe le plafond. Soudain, une idée apparaît: une cabane.",
         imageLabel: "Chambre d'Octavio, idée lumineuse",
         image: "/assets/stories/la-cabane-en-etat-dalerte/web/03-the-idea.jpg",
+        mobileImage: "/assets/stories/la-cabane-en-etat-dalerte/mobile/03-the-idea.jpg",
         motion: "zoom-in"
       },
       {
         text: "En tirant un drap de l'armoire, une avalanche de couvertures lui tombe sur la tête.",
         imageLabel: "Avalanche de draps colorés",
         image: "/assets/stories/la-cabane-en-etat-dalerte/web/04-sheet-avalanche.jpg",
+        mobileImage: "/assets/stories/la-cabane-en-etat-dalerte/mobile/04-sheet-avalanche.jpg",
         motion: "pan-right"
       },
       {
         text: "Il attache les draps à son lit à deux étages. Plus un seul trou: son repère est prêt.",
         imageLabel: "Cabane de draps autour du lit superposé",
         image: "/assets/stories/la-cabane-en-etat-dalerte/web/05-building-fort.jpg",
+        mobileImage: "/assets/stories/la-cabane-en-etat-dalerte/mobile/05-building-fort.jpg",
         motion: "zoom-in"
       },
       {
         text: "Babaou le singe devient capitaine, le dinosaure surveille l'entrée, et la petite voiture transporte les messages urgents.",
         imageLabel: "Toutous et jouets en formation",
         image: "/assets/stories/la-cabane-en-etat-dalerte/web/06-command-team.jpg",
+        mobileImage: "/assets/stories/la-cabane-en-etat-dalerte/mobile/06-command-team.jpg",
         motion: "pan-left"
       },
       {
         text: "Lampe de poche allumée, Octavio rampe, observe et planifie. La cabane est devenue un quartier général.",
         imageLabel: "Intérieur de la cabane, lumière de poche",
         image: "/assets/stories/la-cabane-en-etat-dalerte/web/07-headquarters.jpg",
+        mobileImage: "/assets/stories/la-cabane-en-etat-dalerte/mobile/07-headquarters.jpg",
         motion: "zoom-out"
       },
       {
         text: "Dehors, il imagine une bête affamée. LA BALAYEUSE approche.",
         imageLabel: "La balayeuse vue comme un monstre",
         image: "/assets/stories/la-cabane-en-etat-dalerte/web/08-vacuum-monster.jpg",
+        mobileImage: "/assets/stories/la-cabane-en-etat-dalerte/mobile/08-vacuum-monster.jpg",
         motion: "pan-right"
       },
       {
         text: "Le drap tremble. Octavio retient son souffle. Puis tout s'arrête. Silence.",
         imageLabel: "Coin de drap aspiré, suspense",
         image: "/assets/stories/la-cabane-en-etat-dalerte/web/09-held-breath.jpg",
+        mobileImage: "/assets/stories/la-cabane-en-etat-dalerte/mobile/09-held-breath.jpg",
         motion: "zoom-in"
       },
       {
         text: "Maman propose enfin de jouer au soccer. Octavio sourit: la mission ne peut pas attendre.",
         imageLabel: "Octavio referme l'entrée de sa forteresse",
         image: "/assets/stories/la-cabane-en-etat-dalerte/web/10-mission-continues.jpg",
+        mobileImage: "/assets/stories/la-cabane-en-etat-dalerte/mobile/10-mission-continues.jpg",
         motion: "pan-right"
       }
     ]

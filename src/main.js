@@ -4,7 +4,6 @@ const state = {
   route: "gallery",
   storyId: stories[0].id,
   slideIndex: 0,
-  previousSlideIndex: 0,
   isPlaying: false,
   soundOn: false,
   motion: "story",
@@ -14,6 +13,9 @@ const state = {
 let playTimer = null;
 let audioContext = null;
 let noiseNode = null;
+let activeSceneLayer = 0;
+let sceneTransitionId = 0;
+let scrubTimer = null;
 
 const app = document.querySelector("#app");
 
@@ -25,16 +27,96 @@ function currentSlide() {
   return selectedStory().slides[state.slideIndex];
 }
 
-function previousSlide() {
-  return selectedStory().slides[state.previousSlideIndex] || currentSlide();
-}
-
 function setState(patch) {
-  if (Number.isInteger(patch.slideIndex) && patch.slideIndex !== state.slideIndex) {
-    state.previousSlideIndex = state.slideIndex;
-  }
   Object.assign(state, patch);
   render();
+}
+
+function slideImageMarkup(slide) {
+  const mobileSource = slide.mobileImage
+    ? `<source media="(max-width: 759px)" srcset="${slide.mobileImage}">`
+    : "";
+  return `${mobileSource}<img src="${slide.image || ""}" alt="" decoding="async">`;
+}
+
+function preloadNearbySlides() {
+  const slides = selectedStory().slides;
+  [state.slideIndex + 1, state.slideIndex - 1].forEach((index) => {
+    const slide = slides[index];
+    if (!slide?.image) return;
+    const image = new Image();
+    image.src = window.matchMedia("(max-width: 759px)").matches && slide.mobileImage
+      ? slide.mobileImage
+      : slide.image;
+  });
+}
+
+async function updateReader() {
+  const shell = app.querySelector(".reader-shell");
+  if (!shell) return false;
+
+  const story = selectedStory();
+  const slide = currentSlide();
+  const art = app.querySelector(".scene-art");
+  const slideChanged = Number(art.dataset.slide) !== state.slideIndex;
+
+  if (slideChanged) {
+    const transitionId = ++sceneTransitionId;
+    const nextLayerIndex = activeSceneLayer === 0 ? 1 : 0;
+    const layers = app.querySelectorAll(".scene-layer");
+    const nextLayer = layers[nextLayerIndex];
+    const oldLayer = layers[activeSceneLayer];
+    const source = nextLayer.querySelector("source");
+    const image = nextLayer.querySelector("img");
+
+    if (slide.mobileImage) {
+      if (source) source.srcset = slide.mobileImage;
+      else image.insertAdjacentHTML("beforebegin", `<source media="(max-width: 759px)" srcset="${slide.mobileImage}">`);
+    } else if (source) {
+      source.remove();
+    }
+    image.src = slide.image || "";
+
+    try {
+      await image.decode();
+    } catch {
+      // The load event remains a valid fallback when decode() is unavailable.
+    }
+    if (transitionId !== sceneTransitionId) return true;
+
+    nextLayer.classList.add("is-active");
+    oldLayer.classList.remove("is-active");
+    activeSceneLayer = nextLayerIndex;
+
+    const motion = state.motion === "story" ? slide.motion : state.motion;
+    art.className = `scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}`;
+    art.dataset.slide = String(state.slideIndex);
+  }
+
+  const copy = app.querySelector(".scene-copy");
+  copy.classList.toggle("is-hidden", !state.textVisible);
+  copy.querySelector("p").textContent = slide.text;
+  copy.querySelector(".scene-label").textContent = slide.imageLabel;
+  if (slideChanged) {
+    copy.classList.remove("is-entering");
+    requestAnimationFrame(() => copy.classList.add("is-entering"));
+  }
+
+  shell.classList.toggle("is-playing", state.isPlaying);
+  const playButton = app.querySelector("[data-action='play']");
+  playButton.classList.toggle("is-playing", state.isPlaying);
+  playButton.setAttribute("aria-pressed", String(state.isPlaying));
+  playButton.setAttribute("aria-label", state.isPlaying ? "Pause story" : "Play story");
+  playButton.querySelector(".play-text").textContent = state.isPlaying ? "Pause" : "Play";
+  const textButton = app.querySelector("[data-action='toggle-text']");
+  textButton.setAttribute("aria-pressed", String(state.textVisible));
+  textButton.setAttribute("aria-label", state.textVisible ? "Hide story text" : "Show story text");
+  const scrubber = app.querySelector("[data-action='scrub']");
+  scrubber.value = String(state.slideIndex);
+  scrubber.style.setProperty("--progress", `${story.slides.length === 1 ? 100 : (state.slideIndex / (story.slides.length - 1)) * 100}%`);
+  app.querySelector(".slide-count").textContent = `${state.slideIndex + 1}/${story.slides.length}`;
+  preloadNearbySlides();
+  return true;
 }
 
 function resetViewport() {
@@ -43,13 +125,13 @@ function resetViewport() {
 
 function goToGallery() {
   stopPlayback();
-  setState({ route: "gallery", slideIndex: 0, previousSlideIndex: 0 });
+  setState({ route: "gallery", slideIndex: 0 });
   resetViewport();
 }
 
 function openStory(id) {
   stopPlayback();
-  setState({ route: "reader", storyId: id, slideIndex: 0, previousSlideIndex: 0 });
+  setState({ route: "reader", storyId: id, slideIndex: 0 });
   resetViewport();
 }
 
@@ -79,7 +161,6 @@ function togglePlayback() {
 
   const story = selectedStory();
   if (state.slideIndex >= story.slides.length - 1) {
-    state.previousSlideIndex = state.slideIndex;
     state.slideIndex = 0;
   }
 
@@ -264,11 +345,8 @@ function renderStoryCard(story) {
 function renderReader() {
   const story = selectedStory();
   const slide = currentSlide();
-  const priorSlide = previousSlide();
   const motion = state.motion === "story" ? slide.motion : state.motion;
   const progress = story.slides.length === 1 ? 100 : (state.slideIndex / (story.slides.length - 1)) * 100;
-  const previousImage = priorSlide.image || slide.image;
-  const imageStyle = slide.image ? ` style="--slide-image: url('${slide.image}'); --previous-slide-image: url('${previousImage}')"` : "";
   const playLabel = state.isPlaying ? "Pause story" : "Play story";
 
   app.innerHTML = `
@@ -285,9 +363,9 @@ function renderReader() {
       </header>
 
       <section class="stage" aria-live="polite">
-        <div class="scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}" data-slide="${state.slideIndex}"${imageStyle}>
-          <span class="scene-layer previous-layer" aria-hidden="true"></span>
-          <span class="scene-layer current-layer" aria-hidden="true"></span>
+        <div class="scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}" data-slide="${state.slideIndex}">
+          <picture class="scene-layer is-active" aria-hidden="true">${slideImageMarkup(slide)}</picture>
+          <picture class="scene-layer" aria-hidden="true"><img alt="" decoding="async"></picture>
           <div class="scene-copy ${state.textVisible ? "" : "is-hidden"}">
             <p>${slide.text}</p>
             <span class="scene-label">${slide.imageLabel}</span>
@@ -315,9 +393,16 @@ function renderReader() {
   document.querySelector("[data-action='toggle-text']").addEventListener("click", toggleStoryText);
   document.querySelector("[data-action='scrub']").addEventListener("input", (event) => {
     stopPlayback();
-    setState({ slideIndex: Number(event.target.value) });
+    const nextIndex = Number(event.target.value);
+    const nextProgress = story.slides.length === 1 ? 100 : (nextIndex / (story.slides.length - 1)) * 100;
+    event.target.style.setProperty("--progress", `${nextProgress}%`);
+    document.querySelector(".slide-count").textContent = `${nextIndex + 1}/${story.slides.length}`;
+    clearTimeout(scrubTimer);
+    scrubTimer = setTimeout(() => setState({ slideIndex: nextIndex }), 90);
   });
   updateFullscreenButton();
+  activeSceneLayer = 0;
+  preloadNearbySlides();
 }
 
 function render() {
@@ -325,7 +410,11 @@ function render() {
   if (state.route === "gallery") {
     renderGallery();
   } else {
-    renderReader();
+    if (!app.querySelector(".reader-shell")) {
+      renderReader();
+    } else {
+      updateReader();
+    }
   }
 }
 
