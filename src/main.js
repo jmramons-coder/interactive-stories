@@ -16,6 +16,7 @@ let noiseNode = null;
 let activeSceneLayer = 0;
 let sceneTransitionId = 0;
 let scrubTimer = null;
+let swipeStart = null;
 
 const app = document.querySelector("#app");
 
@@ -49,6 +50,54 @@ function preloadNearbySlides() {
       ? slide.mobileImage
       : slide.image;
   });
+}
+
+function bindSwipeNavigation() {
+  const stage = app.querySelector(".stage");
+  const art = app.querySelector(".scene-art");
+  if (!stage || !art) return;
+
+  const resetSwipe = () => {
+    art.classList.remove("is-swiping");
+    art.style.setProperty("--swipe-offset", "0px");
+    swipeStart = null;
+  };
+
+  stage.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse" || event.target.closest("button, input")) return;
+    swipeStart = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, dx: 0, cancelled: false };
+    stage.setPointerCapture?.(event.pointerId);
+    art.classList.add("is-swiping");
+  });
+
+  stage.addEventListener("pointermove", (event) => {
+    if (!swipeStart || swipeStart.pointerId !== event.pointerId) return;
+    const dx = event.clientX - swipeStart.x;
+    const dy = event.clientY - swipeStart.y;
+    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 12) {
+      swipeStart.cancelled = true;
+      art.style.setProperty("--swipe-offset", "0px");
+      return;
+    }
+    if (swipeStart.cancelled) return;
+    swipeStart.dx = dx;
+    const story = selectedStory();
+    const atEdge = (state.slideIndex === 0 && dx > 0)
+      || (state.slideIndex === story.slides.length - 1 && dx < 0);
+    art.style.setProperty("--swipe-offset", `${atEdge ? dx * 0.22 : dx * 0.48}px`);
+  });
+
+  const finishSwipe = (event) => {
+    if (!swipeStart || swipeStart.pointerId !== event.pointerId) return;
+    const { dx, cancelled } = swipeStart;
+    resetSwipe();
+    if (cancelled || Math.abs(dx) < 48) return;
+    stopPlayback();
+    moveSlide(dx < 0 ? 1 : -1);
+  };
+
+  stage.addEventListener("pointerup", finishSwipe);
+  stage.addEventListener("pointercancel", resetSwipe);
 }
 
 async function updateReader() {
@@ -403,6 +452,7 @@ function renderReader() {
   updateFullscreenButton();
   activeSceneLayer = 0;
   preloadNearbySlides();
+  bindSwipeNavigation();
 }
 
 function render() {

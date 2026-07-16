@@ -391,6 +391,7 @@ select:focus-visible {
 .stage {
   height: 100svh;
   min-height: 100svh;
+  touch-action: pan-y;
 }
 
 .scene-art {
@@ -410,9 +411,14 @@ select:focus-visible {
   display: block;
   overflow: hidden;
   opacity: 0;
-  transition: opacity 520ms ease;
+  transform: translate3d(var(--swipe-offset, 0), 0, 0);
+  transition: opacity 520ms ease, transform 220ms ease-out;
   pointer-events: none;
   will-change: opacity;
+}
+
+.scene-art.is-swiping .scene-layer {
+  transition: opacity 520ms ease;
 }
 
 .scene-layer.is-active {
