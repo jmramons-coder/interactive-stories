@@ -5,18 +5,18 @@ const state = {
   storyId: stories[0].id,
   slideIndex: 0,
   isPlaying: false,
-  soundOn: false,
   motion: "story",
-  textVisible: true
+  textVisible: true,
+  chromeVisible: true
 };
 
 let playTimer = null;
-let audioContext = null;
-let noiseNode = null;
+let chromeTimer = null;
 let activeSceneLayer = 0;
 let sceneTransitionId = 0;
 let scrubTimer = null;
 let swipeStart = null;
+let suppressStageClick = false;
 
 const app = document.querySelector("#app");
 
@@ -31,6 +31,33 @@ function currentSlide() {
 function setState(patch) {
   Object.assign(state, patch);
   render();
+}
+
+function availableStories() {
+  return stories.filter((story) => story.coverImage && story.slides.some((slide) => slide.image));
+}
+
+function slideDuration(slide) {
+  const wordCount = slide.text.trim().split(/\s+/).length;
+  return Math.max(6500, Math.min(12000, 3000 + wordCount * 290));
+}
+
+function clearChromeTimer() {
+  if (chromeTimer) clearTimeout(chromeTimer);
+  chromeTimer = null;
+}
+
+function showReaderChrome({ persist = false } = {}) {
+  if (state.route !== "reader") return;
+  clearChromeTimer();
+  state.chromeVisible = true;
+  app.querySelector(".reader-shell")?.classList.add("chrome-visible");
+  if (!persist && state.isPlaying) {
+    chromeTimer = setTimeout(() => {
+      state.chromeVisible = false;
+      app.querySelector(".reader-shell")?.classList.remove("chrome-visible");
+    }, 2600);
+  }
 }
 
 function slideImageMarkup(slide) {
@@ -92,12 +119,24 @@ function bindSwipeNavigation() {
     const { dx, cancelled } = swipeStart;
     resetSwipe();
     if (cancelled || Math.abs(dx) < 48) return;
+    suppressStageClick = true;
+    setTimeout(() => { suppressStageClick = false; }, 240);
     stopPlayback();
     moveSlide(dx < 0 ? 1 : -1);
   };
 
   stage.addEventListener("pointerup", finishSwipe);
   stage.addEventListener("pointercancel", resetSwipe);
+  stage.addEventListener("click", () => {
+    if (suppressStageClick) return;
+    if (state.chromeVisible) {
+      clearChromeTimer();
+      state.chromeVisible = false;
+      app.querySelector(".reader-shell")?.classList.remove("chrome-visible");
+    } else {
+      showReaderChrome();
+    }
+  });
 }
 
 async function updateReader() {
@@ -145,25 +184,27 @@ async function updateReader() {
   const copy = app.querySelector(".scene-copy");
   copy.classList.toggle("is-hidden", !state.textVisible);
   copy.querySelector("p").textContent = slide.text;
-  copy.querySelector(".scene-label").textContent = slide.imageLabel;
   if (slideChanged) {
     copy.classList.remove("is-entering");
     requestAnimationFrame(() => copy.classList.add("is-entering"));
   }
 
   shell.classList.toggle("is-playing", state.isPlaying);
+  shell.classList.toggle("chrome-visible", state.chromeVisible);
   const playButton = app.querySelector("[data-action='play']");
   playButton.classList.toggle("is-playing", state.isPlaying);
   playButton.setAttribute("aria-pressed", String(state.isPlaying));
-  playButton.setAttribute("aria-label", state.isPlaying ? "Pause story" : "Play story");
-  playButton.querySelector(".play-text").textContent = state.isPlaying ? "Pause" : "Play";
+  playButton.setAttribute("aria-label", state.isPlaying ? "Mettre en pause" : "Lire l'histoire");
+  playButton.querySelector(".play-text").textContent = state.isPlaying ? "Pause" : "Lire";
   const textButton = app.querySelector("[data-action='toggle-text']");
   textButton.setAttribute("aria-pressed", String(state.textVisible));
-  textButton.setAttribute("aria-label", state.textVisible ? "Hide story text" : "Show story text");
+  textButton.setAttribute("aria-label", state.textVisible ? "Masquer le texte" : "Afficher le texte");
   const scrubber = app.querySelector("[data-action='scrub']");
   scrubber.value = String(state.slideIndex);
   scrubber.style.setProperty("--progress", `${story.slides.length === 1 ? 100 : (state.slideIndex / (story.slides.length - 1)) * 100}%`);
   app.querySelector(".slide-count").textContent = `${state.slideIndex + 1}/${story.slides.length}`;
+  app.querySelector("[data-action='previous']").disabled = state.slideIndex === 0;
+  app.querySelector("[data-action='next']").disabled = state.slideIndex === story.slides.length - 1;
   preloadNearbySlides();
   return true;
 }
@@ -196,9 +237,25 @@ function moveSlide(direction) {
 function stopPlayback() {
   state.isPlaying = false;
   if (playTimer) {
-    clearInterval(playTimer);
+    clearTimeout(playTimer);
     playTimer = null;
   }
+  showReaderChrome({ persist: true });
+}
+
+function scheduleNextSlide() {
+  if (!state.isPlaying) return;
+  clearTimeout(playTimer);
+  playTimer = setTimeout(() => {
+    const story = selectedStory();
+    if (state.slideIndex >= story.slides.length - 1) {
+      stopPlayback();
+      render();
+      return;
+    }
+    setState({ slideIndex: state.slideIndex + 1 });
+    scheduleNextSlide();
+  }, slideDuration(currentSlide()));
 }
 
 function togglePlayback() {
@@ -214,16 +271,9 @@ function togglePlayback() {
   }
 
   state.isPlaying = true;
-  playTimer = setInterval(() => {
-    const activeStory = selectedStory();
-    if (state.slideIndex >= activeStory.slides.length - 1) {
-      stopPlayback();
-      render();
-      return;
-    }
-    setState({ slideIndex: state.slideIndex + 1 });
-  }, 5600);
   render();
+  scheduleNextSlide();
+  showReaderChrome();
 }
 
 function toggleStoryText() {
@@ -246,7 +296,7 @@ function updateFullscreenButton() {
 
   const isFullscreen = Boolean(fullscreenElement());
   button.setAttribute("aria-pressed", String(isFullscreen));
-  button.setAttribute("aria-label", isFullscreen ? "Exit full screen" : "Enter full screen");
+  button.setAttribute("aria-label", isFullscreen ? "Quitter le plein écran" : "Plein écran");
 }
 
 async function toggleFullscreen() {
@@ -273,99 +323,49 @@ async function toggleFullscreen() {
   }
 }
 
-function toggleSound() {
-  state.soundOn = !state.soundOn;
-  if (state.soundOn) {
-    startAmbientNoise();
-  } else {
-    stopAmbientNoise();
-  }
-  render();
-}
-
-function startAmbientNoise() {
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (audioContext || !AudioContextClass) {
-    return;
-  }
-
-  audioContext = new AudioContextClass();
-  const bufferSize = 2 * audioContext.sampleRate;
-  const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-  const channel = buffer.getChannelData(0);
-
-  for (let index = 0; index < bufferSize; index += 1) {
-    channel[index] = (Math.random() * 2 - 1) * 0.035;
-  }
-
-  const source = audioContext.createBufferSource();
-  const filter = audioContext.createBiquadFilter();
-  const gain = audioContext.createGain();
-
-  source.buffer = buffer;
-  source.loop = true;
-  filter.type = "lowpass";
-  filter.frequency.value = 620;
-  gain.gain.value = 0.08;
-
-  source.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioContext.destination);
-  source.start();
-  noiseNode = source;
-}
-
-function stopAmbientNoise() {
-  if (noiseNode) {
-    noiseNode.stop();
-  }
-  noiseNode = null;
-  if (audioContext) {
-    audioContext.close();
-  }
-  audioContext = null;
-}
-
 function renderGallery() {
-  const featured = stories[0];
-  const featuredCoverStyle = featured.coverImage ? ` style="background-image: url('${featured.coverImage}')"` : "";
+  const library = availableStories();
+  const featured = library[0];
+  const secondaryStories = library.slice(1);
+  const mobileCover = featured.slides[0]?.mobileImage || featured.coverImage;
   app.innerHTML = `
     <main class="app-shell">
       <header class="topbar">
-        <div class="brand" aria-label="Interactive Stories">
+        <div class="brand" aria-label="Kidory">
           <span class="brand-mark">Kidory</span>
-          <span class="brand-sub">Histoires illustrées</span>
         </div>
+        <span class="library-label">Histoires</span>
       </header>
 
-      <section class="hero">
-        <div class="hero-copy">
-          <p class="kicker">Bibliothèque jeunesse</p>
-          <h1>Lire, écouter, imaginer.</h1>
-          <p>Des histoires éducatives courtes avec images, mouvement doux et lecture interactive.</p>
+      <section class="featured ${secondaryStories.length ? "has-rail" : "is-solo"}" aria-labelledby="featured-title">
+        <picture class="featured-art" aria-hidden="true">
+          <source media="(max-width: 759px)" srcset="${mobileCover}">
+          <img src="${featured.coverImage}" alt="" fetchpriority="high">
+        </picture>
+        <div class="featured-content">
+          <span class="featured-eyebrow">À la une</span>
+          <h1 class="featured-title" id="featured-title">${featured.title}</h1>
+          <div class="featured-meta" aria-label="Informations">
+            <span>${featured.ageRange}</span>
+            <span>${featured.duration}</span>
+            <span>${featured.topic}</span>
+          </div>
+          <p class="featured-summary">${featured.summary}</p>
+          <button class="primary-action" data-story-id="${featured.id}" type="button">
+            <span class="action-play" aria-hidden="true"></span>
+            Lire
+          </button>
         </div>
-
-        <button class="featured cover-${featured.coverTone}${featured.coverImage ? " has-cover" : ""}" data-story-id="${featured.id}" type="button">
-          <span class="featured-art" aria-hidden="true"${featuredCoverStyle}></span>
-          <span class="featured-content">
-            <span class="meta-row">
-              <span class="mini-chip">${featured.ageRange}</span>
-              <span class="mini-chip">${featured.duration}</span>
-            </span>
-            <span class="featured-title">${featured.title}</span>
-            <span class="featured-summary">${featured.summary}</span>
-            <span class="primary-action">Commencer</span>
-          </span>
-        </button>
       </section>
 
-      <section class="rail-header">
-        <h2>Recommandations</h2>
-      </section>
-
-      <section class="story-rail" aria-label="Story gallery">
-        ${stories.map(renderStoryCard).join("")}
-      </section>
+      ${secondaryStories.length ? `
+        <section class="library-rail">
+          <div class="rail-header"><h2>À découvrir</h2></div>
+          <div class="story-rail" aria-label="Histoires disponibles">
+            ${secondaryStories.map(renderStoryCard).join("")}
+          </div>
+        </section>
+      ` : ""}
     </main>
   `;
 
@@ -375,17 +375,15 @@ function renderGallery() {
 }
 
 function renderStoryCard(story) {
-  const coverStyle = story.coverImage ? ` style="background-image: url('${story.coverImage}')"` : "";
+  const mobileCover = story.slides[0]?.mobileImage || story.coverImage;
   return `
-    <button class="story-card ${story.coverImage ? "has-cover" : ""}" data-story-id="${story.id}" type="button">
-      <span class="story-poster cover-${story.coverTone}" aria-hidden="true"${coverStyle}></span>
+    <button class="story-card" data-story-id="${story.id}" type="button">
+      <picture class="story-poster" aria-hidden="true">
+        <img src="${mobileCover}" alt="" loading="lazy" decoding="async">
+      </picture>
       <span class="card-content">
-        <span class="meta-row">
-          <span class="mini-chip">${story.ageRange}</span>
-          <span class="mini-chip">${story.duration}</span>
-        </span>
         <span class="card-title">${story.title}</span>
-        <span class="card-summary">${story.summary}</span>
+        <span class="card-meta">${story.ageRange} · ${story.duration}</span>
       </span>
     </button>
   `;
@@ -396,17 +394,18 @@ function renderReader() {
   const slide = currentSlide();
   const motion = state.motion === "story" ? slide.motion : state.motion;
   const progress = story.slides.length === 1 ? 100 : (state.slideIndex / (story.slides.length - 1)) * 100;
-  const playLabel = state.isPlaying ? "Pause story" : "Play story";
+  const playLabel = state.isPlaying ? "Mettre en pause" : "Lire l'histoire";
 
   app.innerHTML = `
-    <main class="reader-shell ${state.isPlaying ? "is-playing" : ""}">
+    <main class="reader-shell ${state.isPlaying ? "is-playing" : ""} ${state.chromeVisible ? "chrome-visible" : ""}">
       <header class="reader-topbar">
-        <button class="library-button" type="button" data-action="gallery" aria-label="Back to library">‹ Library</button>
+        <button class="icon-button library-button" type="button" data-action="gallery" aria-label="Retour à la bibliothèque">
+          <span class="back-icon" aria-hidden="true"></span>
+        </button>
         <div class="reader-title">
-          <span>${story.topic}</span>
           <strong>${story.title}</strong>
         </div>
-        <button class="fullscreen-button" type="button" data-action="fullscreen" aria-label="Enter full screen" aria-pressed="false">
+        <button class="icon-button fullscreen-button" type="button" data-action="fullscreen" aria-label="Plein écran" aria-pressed="false">
           <span class="fullscreen-icon" aria-hidden="true"></span>
         </button>
       </header>
@@ -417,20 +416,28 @@ function renderReader() {
           <picture class="scene-layer" aria-hidden="true"><img alt="" decoding="async"></picture>
           <div class="scene-copy ${state.textVisible ? "" : "is-hidden"}">
             <p>${slide.text}</p>
-            <span class="scene-label">${slide.imageLabel}</span>
           </div>
         </div>
       </section>
 
       <section class="reader-controls" aria-label="Story controls">
-        <div class="transport minimal">
+        <div class="timeline-row">
+          <input data-action="scrub" type="range" min="0" max="${story.slides.length - 1}" value="${state.slideIndex}" aria-label="Progression de l'histoire" style="--progress: ${progress}%" />
+          <span class="slide-count">${state.slideIndex + 1} / ${story.slides.length}</span>
+        </div>
+        <div class="transport">
+          <button class="transport-button previous-button" type="button" data-action="previous" aria-label="Page précédente" ${state.slideIndex === 0 ? "disabled" : ""}>
+            <span class="skip-icon is-previous" aria-hidden="true"></span>
+          </button>
           <button class="play-button ${state.isPlaying ? "is-playing" : ""}" type="button" data-action="play" aria-label="${playLabel}" aria-pressed="${state.isPlaying}">
             <span class="play-icon" aria-hidden="true"></span>
-            <span class="play-text">${state.isPlaying ? "Pause" : "Play"}</span>
+            <span class="play-text">${state.isPlaying ? "Pause" : "Lire"}</span>
           </button>
-          <button class="text-toggle" type="button" data-action="toggle-text" aria-pressed="${state.textVisible}" aria-label="${state.textVisible ? "Hide story text" : "Show story text"}">Aa</button>
-          <input data-action="scrub" type="range" min="0" max="${story.slides.length - 1}" value="${state.slideIndex}" aria-label="Story slide" style="--progress: ${progress}%" />
-          <span class="slide-count">${state.slideIndex + 1}/${story.slides.length}</span>
+          <button class="transport-button next-button" type="button" data-action="next" aria-label="Page suivante" ${state.slideIndex === story.slides.length - 1 ? "disabled" : ""}>
+            <span class="skip-icon is-next" aria-hidden="true"></span>
+          </button>
+          <span class="transport-spacer"></span>
+          <button class="text-toggle" type="button" data-action="toggle-text" aria-pressed="${state.textVisible}" aria-label="${state.textVisible ? "Masquer le texte" : "Afficher le texte"}">Aa</button>
         </div>
       </section>
     </main>
@@ -439,6 +446,14 @@ function renderReader() {
   document.querySelector("[data-action='gallery']").addEventListener("click", goToGallery);
   document.querySelector("[data-action='fullscreen']").addEventListener("click", toggleFullscreen);
   document.querySelector("[data-action='play']").addEventListener("click", togglePlayback);
+  document.querySelector("[data-action='previous']").addEventListener("click", () => {
+    stopPlayback();
+    moveSlide(-1);
+  });
+  document.querySelector("[data-action='next']").addEventListener("click", () => {
+    stopPlayback();
+    moveSlide(1);
+  });
   document.querySelector("[data-action='toggle-text']").addEventListener("click", toggleStoryText);
   document.querySelector("[data-action='scrub']").addEventListener("input", (event) => {
     stopPlayback();
@@ -474,10 +489,12 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (event.key === "ArrowLeft") {
+    stopPlayback();
     moveSlide(-1);
   }
 
   if (event.key === "ArrowRight") {
+    stopPlayback();
     moveSlide(1);
   }
 
@@ -489,5 +506,14 @@ document.addEventListener("keydown", (event) => {
 
 document.addEventListener("fullscreenchange", updateFullscreenButton);
 document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
+document.addEventListener("visibilitychange", () => {
+  if (!state.isPlaying) return;
+  if (document.hidden) {
+    clearTimeout(playTimer);
+    playTimer = null;
+  } else {
+    scheduleNextSlide();
+  }
+});
 
 render();
