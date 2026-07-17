@@ -381,7 +381,7 @@ button:disabled {
 
 .story-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 28px 18px;
 }
 
@@ -424,14 +424,22 @@ button:disabled {
 
 .heart-icon::before { content: "♡"; font-size: 1.15rem; line-height: 1; }
 .is-active .heart-icon::before { content: "♥"; color: #f28585; }
-.bookmark-icon { width: 10px; height: 13px; border: 1.5px solid currentColor; border-bottom: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); }
-.is-active .bookmark-icon { background: currentColor; }
+.bookmark-icon {
+  width: 11px;
+  height: 14px;
+  border-radius: 1px 1px 0 0;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 73%, 0 100%);
+  opacity: .62;
+  transform: translateZ(0);
+}
+.is-active .bookmark-icon { color: #79d4bd; opacity: 1; }
 .share-icon::before { content: "↗"; font-size: 1rem; line-height: 1; }
 .print-icon { position: relative; width: 13px; height: 10px; border: 1.5px solid currentColor; border-radius: 1px; }
 .print-icon::before { content: ""; position: absolute; top: -5px; left: 2px; width: 7px; height: 5px; border: 1.5px solid currentColor; border-bottom: 0; }
 
 .upcoming-section { padding-top: 24px; border-top: 1px solid var(--line); }
-.upcoming-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.upcoming-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
 .upcoming-card { display: grid; grid-template-rows: minmax(180px, 26vw) auto; min-width: 0; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: #111212; }
 .upcoming-visual { position: relative; display: grid; place-items: center; overflow: hidden; background: #202221; }
 .upcoming-visual::before { content: ""; width: min(34%, 86px); aspect-ratio: 2 / 3; border: 1px solid rgb(255 255 255 / 18%); background: #292b2a; box-shadow: 14px 16px 0 rgb(0 0 0 / 16%); }
@@ -845,6 +853,10 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 0; bo
   .scene-copy { padding-right: 5vw; padding-bottom: 94px; padding-left: 5vw; }
   .scene-copy p { font-size: clamp(1.08rem, 1.7vw, 1.4rem); }
   .reader-controls { padding-right: 24px; padding-left: 24px; }
+}
+
+@media (min-width: 760px) and (max-width: 1099px) {
+  .story-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (min-width: 1180px) {

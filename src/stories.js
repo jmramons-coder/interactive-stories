@@ -174,13 +174,86 @@ export const stories = [
   },
   {
     id: "les-etoiles-de-sami",
-    status: "upcoming",
+    status: "published",
     title: "Les étoiles de Sami",
+    kicker: "Une enquête sous le ciel",
     ageRange: "6-9 ans",
     topic: "Curiosité et astronomie",
-    release: "Automne 2026",
+    duration: "7 min",
+    releaseYear: "2026",
+    edition: "Album illustré · 36 pages",
+    printPrice: "26 $ CAD",
+    orderEmail: "bonjour@kidory.ca",
     coverTone: "night",
-    summary: "Sami transforme une nuit d'observation en laboratoire à ciel ouvert."
+    accent: "#86aaff",
+    coverImage: "/assets/stories/les-etoiles-de-sami/web/01-the-blinking-star.jpg",
+    summary: "Une étoile semble envoyer un message à Sami. Avec Leïla, il compare, expérimente et découvre pourquoi sa lumière danse dans notre ciel.",
+    ambient: "toit-de-nuit",
+    slides: [
+      {
+        text: "Depuis son balcon, Sami remarque une étoile qui clignote. Un signal secret? Il ouvre aussitôt son carnet.",
+        imageLabel: "Sami observe une étoile scintillante",
+        image: "/assets/stories/les-etoiles-de-sami/web/01-the-blinking-star.jpg",
+        mobileImage: "/assets/stories/les-etoiles-de-sami/mobile/01-the-blinking-star.jpg",
+        motion: "zoom-out"
+      },
+      {
+        text: "Tante Leïla ne donne pas la réponse. Elle apporte une lampe rouge et propose mieux: observer avant d'imaginer.",
+        imageLabel: "Leïla rejoint l'enquête",
+        image: "/assets/stories/les-etoiles-de-sami/web/02-leila-joins.jpg",
+        mobileImage: "/assets/stories/les-etoiles-de-sami/mobile/02-leila-joins.jpg",
+        motion: "pan-left"
+      },
+      {
+        text: "Sur le toit, l'étoile basse tremble et change d'éclat. Plus haut, une planète brille comme un point calme. Première différence.",
+        imageLabel: "Comparaison d'une étoile et d'une planète",
+        image: "/assets/stories/les-etoiles-de-sami/web/03-star-and-planet.jpg",
+        mobileImage: "/assets/stories/les-etoiles-de-sami/mobile/03-star-and-planet.jpg",
+        motion: "zoom-in"
+      },
+      {
+        text: "Au-dessus d'une sortie d'air chaud, les toits semblent onduler et l'étoile danse davantage. Dans l'air frais, l'image bouge moins.",
+        imageLabel: "Test au-dessus de l'air chaud",
+        image: "/assets/stories/les-etoiles-de-sami/web/04-warm-air-test.jpg",
+        mobileImage: "/assets/stories/les-etoiles-de-sami/mobile/04-warm-air-test.jpg",
+        motion: "pan-right"
+      },
+      {
+        text: "Leïla fait alors frémir l'eau d'un bol. La pièce au fond paraît se déplacer, même si elle n'a pas bougé.",
+        imageLabel: "Expérience de réfraction avec l'eau",
+        image: "/assets/stories/les-etoiles-de-sami/web/05-bending-light.jpg",
+        mobileImage: "/assets/stories/les-etoiles-de-sami/mobile/05-bending-light.jpg",
+        motion: "zoom-in"
+      },
+      {
+        text: "Sami comprend: la lumière de l'étoile traverse l'atmosphère en mouvement. Les couches d'air la dévient un tout petit peu, encore et encore.",
+        imageLabel: "Sami relie l'expérience à l'atmosphère",
+        image: "/assets/stories/les-etoiles-de-sami/web/06-moving-atmosphere.jpg",
+        mobileImage: "/assets/stories/les-etoiles-de-sami/mobile/06-moving-atmosphere.jpg",
+        motion: "pan-left"
+      },
+      {
+        text: "Ils éteignent les lampes de la terrasse. Sans leur éclat dans les yeux, des dizaines d'étoiles discrètes apparaissent.",
+        imageLabel: "Découverte de la pollution lumineuse",
+        image: "/assets/stories/les-etoiles-de-sami/web/07-lights-down.jpg",
+        mobileImage: "/assets/stories/les-etoiles-de-sami/mobile/07-lights-down.jpg",
+        motion: "zoom-out"
+      },
+      {
+        text: "Dans son carnet, Sami rassemble les indices: l'air chaud bouge, l'eau dévie la lumière, l'étoile basse scintille davantage.",
+        imageLabel: "Sami rassemble les preuves",
+        image: "/assets/stories/les-etoiles-de-sami/web/08-evidence.jpg",
+        mobileImage: "/assets/stories/les-etoiles-de-sami/mobile/08-evidence.jpg",
+        motion: "pan-right"
+      },
+      {
+        text: "À l'aube, l'étoile n'envoie plus de message secret. Elle lui laisse quelque chose de mieux: une nouvelle question à explorer.",
+        imageLabel: "Dernière observation avant l'aube",
+        image: "/assets/stories/les-etoiles-de-sami/web/09-next-question.jpg",
+        mobileImage: "/assets/stories/les-etoiles-de-sami/mobile/09-next-question.jpg",
+        motion: "zoom-out"
+      }
+    ]
   },
   {
     id: "du-pain-pour-tout-le-monde",

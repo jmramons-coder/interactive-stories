@@ -39,6 +39,8 @@ let progressFrame = null;
 let scrubGesture = null;
 let transitionDirection = 1;
 let currentUtterance = null;
+let narrationTimer = null;
+let narrationRunId = 0;
 
 const app = document.querySelector("#app");
 
@@ -175,15 +177,32 @@ function narrationSupported() {
 function preferredVoice() {
   if (!narrationSupported()) return null;
   const voices = window.speechSynthesis.getVoices();
-  return voices.find((voice) => voice.lang === "fr-CA")
-    || voices.find((voice) => voice.lang.startsWith("fr"))
-    || voices.find((voice) => voice.default)
-    || voices[0]
-    || null;
+  const knownNaturalVoices = ["amélie", "amelie", "audrey", "thomas", "denise", "henri", "marie", "google français", "google francais"];
+  const score = (voice) => {
+    const name = voice.name.toLocaleLowerCase("fr");
+    const language = voice.lang.toLocaleLowerCase("fr");
+    let value = 0;
+    if (language === "fr-ca") value += 45;
+    else if (language.startsWith("fr")) value += 35;
+    if (/enhanced|premium|natural|neural/.test(name)) value += 100;
+    const knownIndex = knownNaturalVoices.findIndex((candidate) => name.includes(candidate));
+    if (knownIndex >= 0) value += 80 - knownIndex;
+    if (/google|microsoft/.test(name)) value += 24;
+    if (voice.default) value += 8;
+    return value;
+  };
+  return [...voices].sort((a, b) => score(b) - score(a))[0] || null;
+}
+
+function narrationSegments(text) {
+  return text.match(/[^.!?…]+[.!?…]?/g)?.map((segment) => segment.trim()).filter(Boolean) || [text];
 }
 
 function cancelNarration() {
   if (!narrationSupported()) return;
+  narrationRunId += 1;
+  if (narrationTimer) clearTimeout(narrationTimer);
+  narrationTimer = null;
   currentUtterance = null;
   window.speechSynthesis.cancel();
 }
@@ -191,18 +210,34 @@ function cancelNarration() {
 function speakCurrentSlide() {
   if (!state.narrationEnabled || state.route !== "reader" || !narrationSupported()) return;
   cancelNarration();
-  const utterance = new SpeechSynthesisUtterance(currentSlide().text);
+  const runId = narrationRunId;
+  const segments = narrationSegments(currentSlide().text);
   const voice = preferredVoice();
-  if (voice) utterance.voice = voice;
-  utterance.lang = voice?.lang || "fr-CA";
-  utterance.rate = 0.92;
-  utterance.pitch = 1.02;
-  utterance.volume = 1;
-  currentUtterance = utterance;
-  utterance.addEventListener("end", () => {
-    if (currentUtterance === utterance) currentUtterance = null;
-  });
-  window.speechSynthesis.speak(utterance);
+
+  const speakSegment = (index) => {
+    if (runId !== narrationRunId || !state.narrationEnabled || index >= segments.length) {
+      currentUtterance = null;
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(segments[index]);
+    if (voice) utterance.voice = voice;
+    utterance.lang = voice?.lang || "fr-CA";
+    utterance.rate = 0.86;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    currentUtterance = utterance;
+    utterance.addEventListener("end", () => {
+      if (runId !== narrationRunId) return;
+      const pause = /[!?…]$/.test(segments[index]) ? 440 : 300;
+      narrationTimer = setTimeout(() => speakSegment(index + 1), pause);
+    });
+    utterance.addEventListener("error", () => {
+      if (runId === narrationRunId) currentUtterance = null;
+    });
+    window.speechSynthesis.speak(utterance);
+  };
+
+  speakSegment(0);
 }
 
 function toggleNarration() {
@@ -510,6 +545,7 @@ async function updateReader() {
   const narrationButton = app.querySelector("[data-action='narration']");
   narrationButton?.setAttribute("aria-pressed", String(state.narrationEnabled));
   narrationButton?.setAttribute("aria-label", state.narrationEnabled ? "Désactiver la narration" : "Activer la narration");
+  narrationButton?.setAttribute("title", preferredVoice() ? `Voix: ${preferredVoice().name}` : "Narration française");
   narrationButton?.classList.toggle("is-active", state.narrationEnabled);
   preloadNearbySlides();
   return true;
@@ -769,10 +805,11 @@ function renderStoryCard(story) {
 }
 
 function renderUpcomingCard(story, index) {
+  const collectionNumber = String(availableStories().length + index + 1).padStart(2, "0");
   return `
     <article class="upcoming-card tone-${story.coverTone}">
       <div class="upcoming-visual" aria-hidden="true">
-        <span class="upcoming-number">0${index + 3}</span>
+        <span class="upcoming-number">${collectionNumber}</span>
         <span class="upcoming-mark"></span>
       </div>
       <div class="upcoming-copy">
@@ -790,6 +827,7 @@ function renderReader() {
   const slide = currentSlide();
   const motion = state.motion === "story" ? slide.motion : state.motion;
   const progress = timelineValue();
+  const narrationVoice = preferredVoice();
 
   app.innerHTML = `
     <main class="reader-shell ${state.isPlaying ? "is-playing" : ""} ${state.chromeVisible ? "chrome-visible" : ""}">
@@ -832,7 +870,7 @@ function renderReader() {
           <div class="timeline-track">
             <input data-action="timeline" type="range" min="0" max="1000" step="1" value="${progress}" aria-label="Lire, mettre en pause ou parcourir l'histoire" aria-valuetext="Scène ${state.slideIndex + 1} sur ${story.slides.length}" style="--progress: ${progress / 10}%" />
           </div>
-          <button class="island-button narration-toggle ${state.narrationEnabled ? "is-active" : ""}" type="button" data-action="narration" aria-label="${state.narrationEnabled ? "Désactiver la narration" : "Activer la narration"}" aria-pressed="${state.narrationEnabled}" ${narrationSupported() ? "" : "disabled"}>
+          <button class="island-button narration-toggle ${state.narrationEnabled ? "is-active" : ""}" type="button" data-action="narration" aria-label="${state.narrationEnabled ? "Désactiver la narration" : "Activer la narration"}" aria-pressed="${state.narrationEnabled}" title="${narrationVoice ? `Voix: ${narrationVoice.name}` : "Narration française"}" ${narrationSupported() ? "" : "disabled"}>
             <span class="voice-icon" aria-hidden="true"></span>
           </button>
           <button class="island-button island-expanded text-toggle" type="button" data-action="toggle-text" aria-label="Afficher ou masquer le texte" aria-pressed="${state.textVisible}">
