@@ -7,7 +7,8 @@ const state = {
   isPlaying: false,
   motion: "story",
   chromeVisible: true,
-  textVisible: true
+  textVisible: true,
+  controlsMinimized: false
 };
 
 let playTimer = null;
@@ -281,8 +282,8 @@ async function updateReader() {
   shell.classList.toggle("is-playing", state.isPlaying);
   shell.classList.toggle("chrome-visible", state.chromeVisible);
   updateTimelineUI();
-  app.querySelector("[data-action='previous']").disabled = state.isPlaying || state.slideIndex === 0;
-  app.querySelector("[data-action='next']").disabled = state.isPlaying || state.slideIndex === story.slides.length - 1;
+  app.querySelector("[data-action='previous']").disabled = state.slideIndex === 0;
+  app.querySelector("[data-action='next']").disabled = state.slideIndex === story.slides.length - 1;
   const playButton = app.querySelector("[data-action='play']");
   playButton?.setAttribute("aria-label", state.isPlaying ? "Mettre en pause" : "Lire l'histoire");
   playButton?.setAttribute("aria-pressed", String(state.isPlaying));
@@ -291,6 +292,11 @@ async function updateReader() {
   }
   const textButton = app.querySelector("[data-action='toggle-text']");
   textButton?.setAttribute("aria-pressed", String(state.textVisible));
+  const controlIsland = app.querySelector(".control-island");
+  controlIsland?.classList.toggle("is-minimized", state.controlsMinimized);
+  const minimizeButton = app.querySelector("[data-action='toggle-controls']");
+  minimizeButton?.setAttribute("aria-label", state.controlsMinimized ? "Agrandir les commandes" : "Réduire les commandes");
+  minimizeButton?.setAttribute("aria-expanded", String(!state.controlsMinimized));
   preloadNearbySlides();
   return true;
 }
@@ -524,21 +530,24 @@ function renderReader() {
       </section>
 
       <section class="reader-controls" aria-label="Story controls">
-        <div class="control-island">
-          <button class="island-button" type="button" data-action="previous" aria-label="Scène précédente" ${state.isPlaying || state.slideIndex === 0 ? "disabled" : ""}>
+        <div class="control-island${state.controlsMinimized ? " is-minimized" : ""}">
+          <button class="island-button island-expanded" type="button" data-action="previous" aria-label="Scène précédente" ${state.slideIndex === 0 ? "disabled" : ""}>
             <span class="chevron is-left" aria-hidden="true"></span>
           </button>
-          <button class="island-button play-toggle" type="button" data-action="play" aria-label="${state.isPlaying ? "Mettre en pause" : "Lire l'histoire"}" aria-pressed="${state.isPlaying}">
+          <button class="island-button island-expanded play-toggle" type="button" data-action="play" aria-label="${state.isPlaying ? "Mettre en pause" : "Lire l'histoire"}" aria-pressed="${state.isPlaying}">
             <span class="${state.isPlaying ? "pause-icon" : "play-icon"}" aria-hidden="true"></span>
           </button>
-          <button class="island-button" type="button" data-action="next" aria-label="Scène suivante" ${state.isPlaying || state.slideIndex === story.slides.length - 1 ? "disabled" : ""}>
+          <button class="island-button island-expanded" type="button" data-action="next" aria-label="Scène suivante" ${state.slideIndex === story.slides.length - 1 ? "disabled" : ""}>
             <span class="chevron is-right" aria-hidden="true"></span>
           </button>
           <div class="timeline-track">
             <input data-action="timeline" type="range" min="0" max="1000" step="1" value="${progress}" aria-label="Lire, mettre en pause ou parcourir l'histoire" aria-valuetext="Scène ${state.slideIndex + 1} sur ${story.slides.length}" style="--progress: ${progress / 10}%" />
           </div>
-          <button class="island-button text-toggle" type="button" data-action="toggle-text" aria-label="Afficher ou masquer le texte" aria-pressed="${state.textVisible}">
+          <button class="island-button island-expanded text-toggle" type="button" data-action="toggle-text" aria-label="Afficher ou masquer le texte" aria-pressed="${state.textVisible}">
             <span aria-hidden="true">Aa</span>
+          </button>
+          <button class="island-button minimize-toggle" type="button" data-action="toggle-controls" aria-label="${state.controlsMinimized ? "Agrandir les commandes" : "Réduire les commandes"}" aria-expanded="${!state.controlsMinimized}">
+            <span class="island-collapse-icon" aria-hidden="true"></span>
           </button>
         </div>
       </section>
@@ -550,6 +559,11 @@ function renderReader() {
   document.querySelector("[data-action='play']").addEventListener("click", togglePlayback);
   document.querySelector("[data-action='toggle-text']").addEventListener("click", () => {
     state.textVisible = !state.textVisible;
+    updateReader();
+    showReaderChrome({ persist: true });
+  });
+  document.querySelector("[data-action='toggle-controls']").addEventListener("click", () => {
+    state.controlsMinimized = !state.controlsMinimized;
     updateReader();
     showReaderChrome({ persist: true });
   });

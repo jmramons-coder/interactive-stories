@@ -19,7 +19,11 @@ body {
   color: var(--ink);
 }
 
-body { overflow-x: hidden; }
+body {
+  overflow-x: hidden;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
 body[data-route="reader"] { overflow: hidden; background: #000; }
 
 button,
@@ -313,14 +317,21 @@ button:disabled {
 }
 
 .fullscreen-icon {
-  position: relative;
-  width: 15px;
-  height: 15px;
-  border: 1.5px solid currentColor;
-  border-radius: 2px;
+  width: 16px;
+  height: 16px;
+  background:
+    linear-gradient(currentColor, currentColor) left top / 6px 1.5px no-repeat,
+    linear-gradient(currentColor, currentColor) left top / 1.5px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) right top / 6px 1.5px no-repeat,
+    linear-gradient(currentColor, currentColor) right top / 1.5px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) left bottom / 6px 1.5px no-repeat,
+    linear-gradient(currentColor, currentColor) left bottom / 1.5px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) right bottom / 6px 1.5px no-repeat,
+    linear-gradient(currentColor, currentColor) right bottom / 1.5px 6px no-repeat;
+  transition: transform 180ms ease;
 }
 
-.fullscreen-button[aria-pressed="true"] .fullscreen-icon { transform: scale(0.82); }
+.fullscreen-button[aria-pressed="true"] .fullscreen-icon { transform: scale(0.74) rotate(180deg); }
 
 .stage,
 .scene-art {
@@ -424,7 +435,7 @@ button:disabled {
 
 .control-island {
   display: grid;
-  grid-template-columns: 30px 34px 30px minmax(90px, 1fr) 34px;
+  grid-template-columns: 30px 34px 30px minmax(90px, 1fr) 34px 30px;
   align-items: center;
   width: min(100%, 520px);
   min-height: 48px;
@@ -437,7 +448,20 @@ button:disabled {
   box-shadow: 0 8px 30px rgb(0 0 0 / 32%);
   backdrop-filter: blur(20px) saturate(130%);
   -webkit-backdrop-filter: blur(20px) saturate(130%);
+  transition: width 220ms ease, grid-template-columns 220ms ease, padding 220ms ease;
 }
+
+.control-island.is-minimized {
+  grid-template-columns: minmax(120px, 220px) 30px;
+  width: min(72vw, 280px);
+  padding-left: 12px;
+}
+
+.control-island .island-expanded {
+  transition: opacity 140ms ease, transform 160ms ease;
+}
+
+.control-island.is-minimized .island-expanded { display: none; }
 
 .island-button {
   display: inline-flex;
@@ -476,6 +500,19 @@ button:disabled {
 .pause-icon { width: 9px; height: 11px; border-right: 3px solid currentColor; border-left: 3px solid currentColor; }
 .text-toggle { width: 34px; font-size: .68rem; font-weight: 700; }
 .text-toggle[aria-pressed="true"] { background: rgb(255 255 255 / 14%); color: #fff; }
+
+.minimize-toggle { width: 30px; }
+
+.island-collapse-icon {
+  width: 9px;
+  height: 9px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 180ms ease;
+}
+
+.control-island.is-minimized .island-collapse-icon { transform: translateY(2px) rotate(225deg); }
 
 .chevron {
   width: 8px;
