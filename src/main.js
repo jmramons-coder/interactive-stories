@@ -1,5 +1,21 @@
 import { stories } from "./stories.js";
 
+const STORAGE_KEY = "kidory-library-v1";
+
+function loadLibraryState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    return {
+      liked: Array.isArray(saved.liked) ? saved.liked : [],
+      bookmarked: Array.isArray(saved.bookmarked) ? saved.bookmarked : []
+    };
+  } catch {
+    return { liked: [], bookmarked: [] };
+  }
+}
+
+const libraryState = loadLibraryState();
+
 const state = {
   route: "gallery",
   storyId: stories[0].id,
@@ -7,7 +23,8 @@ const state = {
   isPlaying: false,
   motion: "story",
   chromeVisible: true,
-  textVisible: true
+  textVisible: true,
+  narrationEnabled: false
 };
 
 let playTimer = null;
@@ -21,6 +38,7 @@ let playbackStartedAt = null;
 let progressFrame = null;
 let scrubGesture = null;
 let transitionDirection = 1;
+let currentUtterance = null;
 
 const app = document.querySelector("#app");
 
@@ -38,12 +56,165 @@ function setState(patch) {
 }
 
 function availableStories() {
-  return stories.filter((story) => story.coverImage && story.slides.some((slide) => slide.image));
+  return stories.filter((story) => story.status === "published" && story.coverImage && story.slides?.some((slide) => slide.image));
+}
+
+function upcomingStories() {
+  return stories.filter((story) => story.status === "upcoming");
+}
+
+function persistLibraryState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(libraryState));
+  } catch {
+    // Engagement still works for the current session when storage is restricted.
+  }
+}
+
+function hasEngagement(type, id) {
+  return libraryState[type].includes(id);
+}
+
+function toggleEngagement(type, id) {
+  const values = libraryState[type];
+  const index = values.indexOf(id);
+  if (index >= 0) values.splice(index, 1);
+  else values.push(id);
+  persistLibraryState();
+  const isActive = values.includes(id);
+  const attribute = type === "liked" ? "data-like-id" : "data-bookmark-id";
+  document.querySelectorAll(`[${attribute}="${id}"]`).forEach((button) => {
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+    if (type === "liked") button.setAttribute("aria-label", isActive ? "Retirer des coups de cœur" : "Ajouter aux coups de cœur");
+    else button.setAttribute("aria-label", isActive ? "Retirer des histoires gardées" : "Garder pour plus tard");
+  });
+}
+
+function storyUrl(story) {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.searchParams.set("story", story.id);
+  return url.toString();
+}
+
+function showToast(message) {
+  document.querySelector(".app-toast")?.remove();
+  const toast = document.createElement("div");
+  toast.className = "app-toast";
+  toast.setAttribute("role", "status");
+  toast.textContent = message;
+  document.body.append(toast);
+  requestAnimationFrame(() => toast.classList.add("is-visible"));
+  setTimeout(() => {
+    toast.classList.remove("is-visible");
+    setTimeout(() => toast.remove(), 220);
+  }, 2200);
+}
+
+async function shareStory(story) {
+  const shareData = {
+    title: story.title,
+    text: `${story.title} — une histoire interactive Kidory`,
+    url: storyUrl(story)
+  };
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (error) {
+      if (error.name === "AbortError") return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(shareData.url);
+    showToast("Lien de l'histoire copié");
+  } catch {
+    window.prompt("Copiez ce lien", shareData.url);
+  }
+}
+
+function openPrintOrder(story) {
+  document.querySelector(".print-dialog")?.remove();
+  const dialog = document.createElement("dialog");
+  dialog.className = "print-dialog";
+  const subject = encodeURIComponent(`Commande papier — ${story.title}`);
+  const body = encodeURIComponent(`Bonjour,\n\nJe souhaite commander un exemplaire papier de « ${story.title} ».\n\nMerci.`);
+  dialog.innerHTML = `
+    <div class="print-sheet">
+      <button class="dialog-close" type="button" aria-label="Fermer"><span aria-hidden="true"></span></button>
+      <picture class="print-cover" aria-hidden="true"><img src="${story.slides[0].mobileImage || story.coverImage}" alt=""></picture>
+      <div class="print-copy">
+        <span class="print-label">Édition papier</span>
+        <h2>${story.title}</h2>
+        <p>${story.edition}</p>
+        <div class="print-price">${story.printPrice}</div>
+        <p class="print-note">Imprimé en petite série. Nous confirmons les frais de livraison et le délai avant le paiement.</p>
+        <a class="order-link" href="mailto:${story.orderEmail}?subject=${subject}&body=${body}">Demander un exemplaire</a>
+      </div>
+    </div>
+  `;
+  document.body.append(dialog);
+  dialog.querySelector(".dialog-close").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.showModal();
 }
 
 function slideDuration(slide) {
   const wordCount = slide.text.trim().split(/\s+/).length;
-  return Math.max(6500, Math.min(12000, 3000 + wordCount * 290));
+  return Math.max(7500, Math.min(16000, 3600 + wordCount * 420));
+}
+
+function narrationSupported() {
+  return "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+}
+
+function preferredVoice() {
+  if (!narrationSupported()) return null;
+  const voices = window.speechSynthesis.getVoices();
+  return voices.find((voice) => voice.lang === "fr-CA")
+    || voices.find((voice) => voice.lang.startsWith("fr"))
+    || voices.find((voice) => voice.default)
+    || voices[0]
+    || null;
+}
+
+function cancelNarration() {
+  if (!narrationSupported()) return;
+  currentUtterance = null;
+  window.speechSynthesis.cancel();
+}
+
+function speakCurrentSlide() {
+  if (!state.narrationEnabled || state.route !== "reader" || !narrationSupported()) return;
+  cancelNarration();
+  const utterance = new SpeechSynthesisUtterance(currentSlide().text);
+  const voice = preferredVoice();
+  if (voice) utterance.voice = voice;
+  utterance.lang = voice?.lang || "fr-CA";
+  utterance.rate = 0.92;
+  utterance.pitch = 1.02;
+  utterance.volume = 1;
+  currentUtterance = utterance;
+  utterance.addEventListener("end", () => {
+    if (currentUtterance === utterance) currentUtterance = null;
+  });
+  window.speechSynthesis.speak(utterance);
+}
+
+function toggleNarration() {
+  if (!narrationSupported()) {
+    showToast("La narration n'est pas disponible dans ce navigateur");
+    return;
+  }
+  state.narrationEnabled = !state.narrationEnabled;
+  if (state.narrationEnabled) speakCurrentSlide();
+  else cancelNarration();
+  updateReader();
+  showReaderChrome({ persist: true });
 }
 
 function storyTiming() {
@@ -336,6 +507,10 @@ async function updateReader() {
   }
   const textButton = app.querySelector("[data-action='toggle-text']");
   textButton?.setAttribute("aria-pressed", String(state.textVisible));
+  const narrationButton = app.querySelector("[data-action='narration']");
+  narrationButton?.setAttribute("aria-pressed", String(state.narrationEnabled));
+  narrationButton?.setAttribute("aria-label", state.narrationEnabled ? "Désactiver la narration" : "Activer la narration");
+  narrationButton?.classList.toggle("is-active", state.narrationEnabled);
   preloadNearbySlides();
   return true;
 }
@@ -348,13 +523,15 @@ function goToGallery() {
   stopPlayback();
   slideElapsedMs = 0;
   setState({ route: "gallery", slideIndex: 0 });
+  history.pushState({}, "", window.location.pathname);
   resetViewport();
 }
 
-function openStory(id) {
+function openStory(id, { updateHistory = true } = {}) {
   stopPlayback();
   slideElapsedMs = 0;
   setState({ route: "reader", storyId: id, slideIndex: 0 });
+  if (updateHistory) history.pushState({}, "", storyUrl(selectedStory()));
   resetViewport();
 }
 
@@ -366,6 +543,7 @@ function moveSlide(direction) {
   slideElapsedMs = 0;
   playbackStartedAt = state.isPlaying ? performance.now() : null;
   setState({ slideIndex: nextIndex });
+  if (state.narrationEnabled) setTimeout(speakCurrentSlide, 0);
   if (nextIndex === story.slides.length - 1 && direction > 0) {
     stopPlayback();
   }
@@ -383,6 +561,7 @@ function stopPlayback() {
   }
   cancelAnimationFrame(progressFrame);
   progressFrame = null;
+  cancelNarration();
   showReaderChrome({ persist: true });
   app.querySelector(".reader-shell")?.classList.remove("is-playing");
   updateTimelineUI();
@@ -393,6 +572,7 @@ function scheduleNextSlide() {
   clearTimeout(playTimer);
   playbackStartedAt = performance.now();
   const remaining = Math.max(80, slideDuration(currentSlide()) - slideElapsedMs);
+  if (state.narrationEnabled) speakCurrentSlide();
   playTimer = setTimeout(() => {
     const story = selectedStory();
     if (state.slideIndex >= story.slides.length - 1) {
@@ -474,8 +654,8 @@ async function toggleFullscreen() {
 
 function renderGallery() {
   const library = availableStories();
-  const featured = library[0];
-  const secondaryStories = library.slice(1);
+  const upcoming = upcomingStories();
+  const featured = library[library.length - 1];
   const mobileCover = featured.slides[0]?.mobileImage || featured.coverImage;
   app.innerHTML = `
     <main class="app-shell">
@@ -483,58 +663,125 @@ function renderGallery() {
         <div class="brand" aria-label="Kidory">
           <span class="brand-mark">Kidory</span>
         </div>
-        <span class="library-label">Histoires</span>
+        <span class="library-label">Bibliothèque vivante</span>
+        <span class="library-count">${library.length} histoires</span>
       </header>
 
-      <section class="featured ${secondaryStories.length ? "has-rail" : "is-solo"}" aria-labelledby="featured-title">
+      <section class="featured" aria-labelledby="featured-title" style="--story-accent: ${featured.accent}">
         <picture class="featured-art" aria-hidden="true">
           <source media="(max-width: 759px)" srcset="${mobileCover}">
           <img src="${featured.coverImage}" alt="" fetchpriority="high">
         </picture>
         <div class="featured-content">
-          <span class="featured-eyebrow">À la une</span>
+          <span class="featured-eyebrow">Nouvelle histoire</span>
+          <span class="featured-kicker">${featured.kicker}</span>
           <h1 class="featured-title" id="featured-title">${featured.title}</h1>
           <div class="featured-meta" aria-label="Informations">
             <span>${featured.ageRange}</span>
             <span>${featured.duration}</span>
-            <span>${featured.topic}</span>
+            <span>${featured.releaseYear}</span>
           </div>
           <p class="featured-summary">${featured.summary}</p>
-          <button class="primary-action" data-story-id="${featured.id}" type="button">
-            <span class="action-play" aria-hidden="true"></span>
-            Lire
-          </button>
+          <div class="featured-actions">
+            <button class="primary-action" data-story-id="${featured.id}" type="button">
+              <span class="action-play" aria-hidden="true"></span>
+              Lire l'histoire
+            </button>
+            <button class="secondary-action" data-order-id="${featured.id}" type="button">
+              <span class="print-icon" aria-hidden="true"></span>
+              Papier
+            </button>
+            <button class="round-action ${hasEngagement("liked", featured.id) ? "is-active" : ""}" data-like-id="${featured.id}" type="button" aria-label="${hasEngagement("liked", featured.id) ? "Retirer des coups de cœur" : "Ajouter aux coups de cœur"}" aria-pressed="${hasEngagement("liked", featured.id)}">
+              <span class="heart-icon" aria-hidden="true"></span>
+            </button>
+            <button class="round-action" data-share-id="${featured.id}" type="button" aria-label="Partager ${featured.title}">
+              <span class="share-icon" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+        <div class="hero-index" aria-hidden="true"><span>01</span><i></i><span>02</span></div>
+      </section>
+
+      <section class="library-section" aria-labelledby="library-title">
+        <div class="section-heading">
+          <div><span class="section-eyebrow">La collection</span><h2 id="library-title">À lire maintenant</h2></div>
+          <p>Des histoires à regarder, écouter et garder.</p>
+        </div>
+        <div class="story-grid">
+          ${library.map(renderStoryCard).join("")}
         </div>
       </section>
 
-      ${secondaryStories.length ? `
-        <section class="library-rail">
-          <div class="rail-header"><h2>À découvrir</h2></div>
-          <div class="story-rail" aria-label="Histoires disponibles">
-            ${secondaryStories.map(renderStoryCard).join("")}
-          </div>
-        </section>
-      ` : ""}
+      <section class="library-section upcoming-section" aria-labelledby="upcoming-title">
+        <div class="section-heading">
+          <div><span class="section-eyebrow">En création</span><h2 id="upcoming-title">Prochainement</h2></div>
+          <p>Les prochaines enquêtes prennent forme.</p>
+        </div>
+        <div class="upcoming-grid">
+          ${upcoming.map(renderUpcomingCard).join("")}
+        </div>
+      </section>
+
+      <footer class="library-footer"><span>Kidory</span><p>Histoires éducatives, numériques et imprimées.</p></footer>
     </main>
   `;
 
   document.querySelectorAll("[data-story-id]").forEach((button) => {
     button.addEventListener("click", () => openStory(button.dataset.storyId));
   });
+  document.querySelectorAll("[data-like-id]").forEach((button) => {
+    button.addEventListener("click", () => toggleEngagement("liked", button.dataset.likeId));
+  });
+  document.querySelectorAll("[data-bookmark-id]").forEach((button) => {
+    button.addEventListener("click", () => toggleEngagement("bookmarked", button.dataset.bookmarkId));
+  });
+  document.querySelectorAll("[data-share-id]").forEach((button) => {
+    button.addEventListener("click", () => shareStory(stories.find((story) => story.id === button.dataset.shareId)));
+  });
+  document.querySelectorAll("[data-order-id]").forEach((button) => {
+    button.addEventListener("click", () => openPrintOrder(stories.find((story) => story.id === button.dataset.orderId)));
+  });
 }
 
 function renderStoryCard(story) {
   const mobileCover = story.slides[0]?.mobileImage || story.coverImage;
   return `
-    <button class="story-card" data-story-id="${story.id}" type="button">
-      <picture class="story-poster" aria-hidden="true">
-        <img src="${mobileCover}" alt="" loading="lazy" decoding="async">
-      </picture>
-      <span class="card-content">
-        <span class="card-title">${story.title}</span>
-        <span class="card-meta">${story.ageRange} · ${story.duration}</span>
-      </span>
-    </button>
+    <article class="story-card" style="--story-accent: ${story.accent}">
+      <button class="story-open" data-story-id="${story.id}" type="button" aria-label="Lire ${story.title}">
+        <picture class="story-poster" aria-hidden="true">
+          <img src="${mobileCover}" alt="" loading="lazy" decoding="async">
+        </picture>
+        <span class="card-play" aria-hidden="true"><span class="action-play"></span></span>
+      </button>
+      <div class="card-content">
+        <div class="card-heading"><h3>${story.title}</h3><span>${story.duration}</span></div>
+        <p>${story.kicker}</p>
+        <div class="card-meta"><span>${story.ageRange}</span><span>${story.topic}</span></div>
+        <div class="card-actions">
+          <button class="card-action ${hasEngagement("liked", story.id) ? "is-active" : ""}" data-like-id="${story.id}" type="button" aria-label="${hasEngagement("liked", story.id) ? "Retirer des coups de cœur" : "Ajouter aux coups de cœur"}" aria-pressed="${hasEngagement("liked", story.id)}"><span class="heart-icon" aria-hidden="true"></span></button>
+          <button class="card-action ${hasEngagement("bookmarked", story.id) ? "is-active" : ""}" data-bookmark-id="${story.id}" type="button" aria-label="${hasEngagement("bookmarked", story.id) ? "Retirer des histoires gardées" : "Garder pour plus tard"}" aria-pressed="${hasEngagement("bookmarked", story.id)}"><span class="bookmark-icon" aria-hidden="true"></span></button>
+          <button class="card-action" data-share-id="${story.id}" type="button" aria-label="Partager"><span class="share-icon" aria-hidden="true"></span></button>
+          <button class="card-order" data-order-id="${story.id}" type="button"><span class="print-icon" aria-hidden="true"></span>${story.printPrice}</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderUpcomingCard(story, index) {
+  return `
+    <article class="upcoming-card tone-${story.coverTone}">
+      <div class="upcoming-visual" aria-hidden="true">
+        <span class="upcoming-number">0${index + 3}</span>
+        <span class="upcoming-mark"></span>
+      </div>
+      <div class="upcoming-copy">
+        <span>${story.release}</span>
+        <h3>${story.title}</h3>
+        <p>${story.summary}</p>
+        <div>${story.ageRange} · ${story.topic}</div>
+      </div>
+    </article>
   `;
 }
 
@@ -553,9 +800,12 @@ function renderReader() {
         <div class="reader-title">
           <strong>${story.title}</strong>
         </div>
-        <button class="icon-button fullscreen-button" type="button" data-action="fullscreen" aria-label="Plein écran" aria-pressed="false">
-          <span class="fullscreen-icon" aria-hidden="true"></span>
-        </button>
+        <div class="reader-actions">
+          <button class="icon-button" type="button" data-action="reader-share" aria-label="Partager cette histoire"><span class="share-icon" aria-hidden="true"></span></button>
+          <button class="icon-button fullscreen-button" type="button" data-action="fullscreen" aria-label="Plein écran" aria-pressed="false">
+            <span class="fullscreen-icon" aria-hidden="true"></span>
+          </button>
+        </div>
       </header>
 
       <section class="stage" aria-live="polite">
@@ -582,6 +832,9 @@ function renderReader() {
           <div class="timeline-track">
             <input data-action="timeline" type="range" min="0" max="1000" step="1" value="${progress}" aria-label="Lire, mettre en pause ou parcourir l'histoire" aria-valuetext="Scène ${state.slideIndex + 1} sur ${story.slides.length}" style="--progress: ${progress / 10}%" />
           </div>
+          <button class="island-button narration-toggle ${state.narrationEnabled ? "is-active" : ""}" type="button" data-action="narration" aria-label="${state.narrationEnabled ? "Désactiver la narration" : "Activer la narration"}" aria-pressed="${state.narrationEnabled}" ${narrationSupported() ? "" : "disabled"}>
+            <span class="voice-icon" aria-hidden="true"></span>
+          </button>
           <button class="island-button island-expanded text-toggle" type="button" data-action="toggle-text" aria-label="Afficher ou masquer le texte" aria-pressed="${state.textVisible}">
             <span aria-hidden="true">Aa</span>
           </button>
@@ -592,7 +845,9 @@ function renderReader() {
 
   document.querySelector("[data-action='gallery']").addEventListener("click", goToGallery);
   document.querySelector("[data-action='fullscreen']").addEventListener("click", toggleFullscreen);
+  document.querySelector("[data-action='reader-share']").addEventListener("click", () => shareStory(story));
   document.querySelector("[data-action='play']").addEventListener("click", togglePlayback);
+  document.querySelector("[data-action='narration']").addEventListener("click", toggleNarration);
   document.querySelector("[data-action='toggle-text']").addEventListener("click", () => {
     state.textVisible = !state.textVisible;
     updateReader();
@@ -686,9 +941,27 @@ document.addEventListener("visibilitychange", () => {
     playTimer = null;
     cancelAnimationFrame(progressFrame);
     progressFrame = null;
+    cancelNarration();
   } else {
     scheduleNextSlide();
   }
 });
+
+window.addEventListener("popstate", () => {
+  const requestedId = new URLSearchParams(window.location.search).get("story");
+  const story = availableStories().find((item) => item.id === requestedId);
+  if (story) openStory(story.id, { updateHistory: false });
+  else {
+    stopPlayback();
+    slideElapsedMs = 0;
+    setState({ route: "gallery", slideIndex: 0 });
+  }
+});
+
+const requestedStoryId = new URLSearchParams(window.location.search).get("story");
+if (availableStories().some((story) => story.id === requestedStoryId)) {
+  state.route = "reader";
+  state.storyId = requestedStoryId;
+}
 
 render();

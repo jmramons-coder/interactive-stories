@@ -1,15 +1,17 @@
-# Interactive Stories
+# Kidory — Interactive Stories
 
-A local prototype for educational, interactive picture-book stories.
+A cinematic digital library for educational picture-book stories.
 
 ## What Is Included
 
-- Gallery landing page with story cards.
-- Reader view with print-book-style image area and text above the image.
-- Horizontal pan, zoom-in, and zoom-out motion modes.
-- Bottom controls for previous, next, play/pause, and slide scrubbing.
-- Ambient sound toggle stub using generated soft noise for now.
-- Data-driven story structure in `src/stories.js`.
+- Responsive Netflix-style library with published and upcoming collections.
+- Two complete French stories with desktop and mobile image sources.
+- Immersive reader with direct-manipulation swipes, playback, scrubbing, text controls, and fullscreen mode.
+- Optional French system narration synchronized to each scene.
+- Persistent likes and bookmarks using local storage.
+- Native sharing with copy-link fallback and direct story URLs.
+- Print-edition order sheet with a prefilled email handoff.
+- Data-driven release, edition, and story metadata in `src/stories.js`.
 
 ## Run Locally
 
@@ -36,12 +38,12 @@ npm run dev
 ```text
 index.html          App shell
 src/main.js         Gallery, reader, controls, playback, sound
-src/stories.js      Placeholder story metadata and slide scripts
-src/styles.css      Responsive visual design and animations
-assets/stories/     Future generated story images and audio
+  src/stories.js      Published/upcoming metadata and slide scripts
+  src/styles.css      Responsive library, reader, and transition design
+  assets/stories/     Generated desktop and mobile story artwork
 scripts/server.mjs  Small local static server
 ```
 
-## Next Content Step
+## Adding A Story
 
-When the real script is ready, each story can be added to `src/stories.js` with one slide per image. Later, the placeholder scene labels can be replaced with generated image URLs from `assets/stories/...`.
+Add a `published` entry to `src/stories.js`, include edition metadata, and provide one desktop and mobile image URL per slide. Entries marked `upcoming` automatically appear in the release shelf without becoming readable.
