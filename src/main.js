@@ -6,7 +6,8 @@ const state = {
   slideIndex: 0,
   isPlaying: false,
   motion: "story",
-  chromeVisible: true
+  chromeVisible: true,
+  textVisible: true
 };
 
 let playTimer = null;
@@ -19,6 +20,7 @@ let slideElapsedMs = 0;
 let playbackStartedAt = null;
 let progressFrame = null;
 let scrubGesture = null;
+let transitionDirection = 1;
 
 const app = document.querySelector("#app");
 
@@ -99,18 +101,11 @@ function seekTimeline(value) {
     target -= durations[index];
   }
 
-  if (nextIndex !== state.slideIndex) setState({ slideIndex: nextIndex });
+  if (nextIndex !== state.slideIndex) {
+    transitionDirection = nextIndex > state.slideIndex ? 1 : -1;
+    setState({ slideIndex: nextIndex });
+  }
   updateTimelineUI(value);
-}
-
-function timelineMarkers(story) {
-  const durations = story.slides.map(slideDuration);
-  const total = durations.reduce((sum, duration) => sum + duration, 0);
-  let elapsed = 0;
-  return durations.slice(0, -1).map((duration) => {
-    elapsed += duration;
-    return `<i style="left: ${(elapsed / total) * 100}%"></i>`;
-  }).join("");
 }
 
 function clearChromeTimer() {
@@ -156,7 +151,7 @@ function bindSwipeNavigation() {
   if (!stage || !art) return;
 
   const resetSwipe = () => {
-    art.classList.remove("is-swiping", "swipe-commit-left", "swipe-commit-right");
+    art.classList.remove("is-swiping");
     art.style.setProperty("--swipe-offset", "0px");
     swipeStart = null;
   };
@@ -201,13 +196,9 @@ function bindSwipeNavigation() {
     suppressStageClick = true;
     swipeStart = null;
     art.classList.remove("is-swiping");
-    art.classList.add(direction > 0 ? "swipe-commit-left" : "swipe-commit-right");
-    art.style.setProperty("--swipe-offset", direction > 0 ? "-14%" : "14%");
     stopPlayback();
-    setTimeout(() => {
-      moveSlide(direction);
-      suppressStageClick = false;
-    }, 160);
+    moveSlide(direction);
+    setTimeout(() => { suppressStageClick = false; }, 520);
   };
 
   stage.addEventListener("pointerup", finishSwipe);
@@ -257,9 +248,19 @@ async function updateReader() {
     }
     if (transitionId !== sceneTransitionId) return true;
 
+    const directionName = transitionDirection > 0 ? "forward" : "backward";
+    nextLayer.className = `scene-layer is-preparing-${directionName}`;
+    oldLayer.classList.remove("is-exiting-forward", "is-exiting-backward");
+    nextLayer.getBoundingClientRect();
+    oldLayer.classList.add(`is-exiting-${directionName}`);
     nextLayer.classList.add("is-active");
-    oldLayer.classList.remove("is-active");
+    nextLayer.classList.remove(`is-preparing-${directionName}`);
     activeSceneLayer = nextLayerIndex;
+
+    setTimeout(() => {
+      if (transitionId !== sceneTransitionId) return;
+      oldLayer.className = "scene-layer";
+    }, 560);
 
     const motion = state.motion === "story" ? slide.motion : state.motion;
     art.className = `scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}`;
@@ -269,9 +270,12 @@ async function updateReader() {
 
   const copy = app.querySelector(".scene-copy");
   copy.querySelector("p").textContent = slide.text;
-  if (slideChanged) {
+  copy.classList.toggle("is-hidden", !state.textVisible);
+  if (slideChanged && state.textVisible) {
     copy.classList.remove("is-entering");
     requestAnimationFrame(() => copy.classList.add("is-entering"));
+  } else if (!state.textVisible) {
+    copy.classList.remove("is-entering");
   }
 
   shell.classList.toggle("is-playing", state.isPlaying);
@@ -279,6 +283,14 @@ async function updateReader() {
   updateTimelineUI();
   app.querySelector("[data-action='previous']").disabled = state.isPlaying || state.slideIndex === 0;
   app.querySelector("[data-action='next']").disabled = state.isPlaying || state.slideIndex === story.slides.length - 1;
+  const playButton = app.querySelector("[data-action='play']");
+  playButton?.setAttribute("aria-label", state.isPlaying ? "Mettre en pause" : "Lire l'histoire");
+  playButton?.setAttribute("aria-pressed", String(state.isPlaying));
+  if (playButton?.firstElementChild) {
+    playButton.firstElementChild.className = state.isPlaying ? "pause-icon" : "play-icon";
+  }
+  const textButton = app.querySelector("[data-action='toggle-text']");
+  textButton?.setAttribute("aria-pressed", String(state.textVisible));
   preloadNearbySlides();
   return true;
 }
@@ -304,6 +316,8 @@ function openStory(id) {
 function moveSlide(direction) {
   const story = selectedStory();
   const nextIndex = Math.max(0, Math.min(story.slides.length - 1, state.slideIndex + direction));
+  if (nextIndex === state.slideIndex) return;
+  transitionDirection = direction;
   slideElapsedMs = 0;
   playbackStartedAt = state.isPlaying ? performance.now() : null;
   setState({ slideIndex: nextIndex });
@@ -503,23 +517,28 @@ function renderReader() {
         <div class="scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}" data-slide="${state.slideIndex}">
           <picture class="scene-layer is-active" aria-hidden="true">${slideImageMarkup(slide)}</picture>
           <picture class="scene-layer" aria-hidden="true"><img alt="" decoding="async"></picture>
-          <div class="scene-copy">
+          <div class="scene-copy${state.textVisible ? "" : " is-hidden"}">
             <p>${slide.text}</p>
           </div>
         </div>
       </section>
 
       <section class="reader-controls" aria-label="Story controls">
-        <div class="timeline-control">
-          <button class="timeline-arrow" type="button" data-action="previous" aria-label="Scène précédente" ${state.isPlaying || state.slideIndex === 0 ? "disabled" : ""}>
+        <div class="control-island">
+          <button class="island-button" type="button" data-action="previous" aria-label="Scène précédente" ${state.isPlaying || state.slideIndex === 0 ? "disabled" : ""}>
             <span class="chevron is-left" aria-hidden="true"></span>
           </button>
+          <button class="island-button play-toggle" type="button" data-action="play" aria-label="${state.isPlaying ? "Mettre en pause" : "Lire l'histoire"}" aria-pressed="${state.isPlaying}">
+            <span class="${state.isPlaying ? "pause-icon" : "play-icon"}" aria-hidden="true"></span>
+          </button>
+          <button class="island-button" type="button" data-action="next" aria-label="Scène suivante" ${state.isPlaying || state.slideIndex === story.slides.length - 1 ? "disabled" : ""}>
+            <span class="chevron is-right" aria-hidden="true"></span>
+          </button>
           <div class="timeline-track">
-            <span class="timeline-markers" aria-hidden="true">${timelineMarkers(story)}</span>
             <input data-action="timeline" type="range" min="0" max="1000" step="1" value="${progress}" aria-label="Lire, mettre en pause ou parcourir l'histoire" aria-valuetext="Scène ${state.slideIndex + 1} sur ${story.slides.length}" style="--progress: ${progress / 10}%" />
           </div>
-          <button class="timeline-arrow" type="button" data-action="next" aria-label="Scène suivante" ${state.isPlaying || state.slideIndex === story.slides.length - 1 ? "disabled" : ""}>
-            <span class="chevron is-right" aria-hidden="true"></span>
+          <button class="island-button text-toggle" type="button" data-action="toggle-text" aria-label="Afficher ou masquer le texte" aria-pressed="${state.textVisible}">
+            <span aria-hidden="true">Aa</span>
           </button>
         </div>
       </section>
@@ -528,6 +547,12 @@ function renderReader() {
 
   document.querySelector("[data-action='gallery']").addEventListener("click", goToGallery);
   document.querySelector("[data-action='fullscreen']").addEventListener("click", toggleFullscreen);
+  document.querySelector("[data-action='play']").addEventListener("click", togglePlayback);
+  document.querySelector("[data-action='toggle-text']").addEventListener("click", () => {
+    state.textVisible = !state.textVisible;
+    updateReader();
+    showReaderChrome({ persist: true });
+  });
   document.querySelector("[data-action='previous']").addEventListener("click", () => {
     stopPlayback();
     moveSlide(-1);
@@ -538,6 +563,7 @@ function renderReader() {
   });
   const timeline = document.querySelector("[data-action='timeline']");
   timeline.addEventListener("pointerdown", () => {
+    showReaderChrome({ persist: true });
     scrubGesture = { wasPlaying: state.isPlaying, startValue: Number(timeline.value), changed: false };
     if (state.isPlaying) stopPlayback();
   });
@@ -558,6 +584,7 @@ function renderReader() {
       return;
     }
     if (!state.isPlaying) togglePlayback();
+    else showReaderChrome();
   });
   timeline.addEventListener("pointercancel", () => {
     scrubGesture = null;
