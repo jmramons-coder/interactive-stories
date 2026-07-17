@@ -7,8 +7,7 @@ const state = {
   isPlaying: false,
   motion: "story",
   chromeVisible: true,
-  textVisible: true,
-  controlsMinimized: false
+  textVisible: true
 };
 
 let playTimer = null;
@@ -134,6 +133,19 @@ function slideImageMarkup(slide) {
   return `${mobileSource}<img src="${slide.image || ""}" alt="" decoding="async">`;
 }
 
+function setLayerSlide(layer, slide) {
+  const image = layer.querySelector("img");
+  const source = layer.querySelector("source");
+  if (slide.mobileImage) {
+    if (source) source.srcset = slide.mobileImage;
+    else image.insertAdjacentHTML("beforebegin", `<source media="(max-width: 759px)" srcset="${slide.mobileImage}">`);
+  } else if (source) {
+    source.remove();
+  }
+  image.src = slide.image || "";
+  return image;
+}
+
 function preloadNearbySlides() {
   const slides = selectedStory().slides;
   [state.slideIndex + 1, state.slideIndex - 1].forEach((index) => {
@@ -152,16 +164,41 @@ function bindSwipeNavigation() {
   if (!stage || !art) return;
 
   const resetSwipe = () => {
-    art.classList.remove("is-swiping");
+    const previewLayer = swipeStart?.previewLayerIndex !== undefined
+      ? app.querySelectorAll(".scene-layer")[swipeStart.previewLayerIndex]
+      : null;
+    previewLayer?.classList.remove("is-swipe-preview", "is-next", "is-previous");
+    art.classList.remove("is-swiping", "is-swipe-settling");
     art.style.setProperty("--swipe-offset", "0px");
     swipeStart = null;
   };
 
+  const prepareSwipePreview = (direction) => {
+    const nextIndex = state.slideIndex + direction;
+    const slide = selectedStory().slides[nextIndex];
+    if (!slide) return false;
+    if (swipeStart.direction === direction && swipeStart.previewLayerIndex !== undefined) return true;
+
+    const layers = app.querySelectorAll(".scene-layer");
+    const previewLayerIndex = activeSceneLayer === 0 ? 1 : 0;
+    const previewLayer = layers[previewLayerIndex];
+    setLayerSlide(previewLayer, slide);
+    previewLayer.className = `scene-layer is-swipe-preview ${direction > 0 ? "is-next" : "is-previous"}`;
+    swipeStart.direction = direction;
+    swipeStart.nextIndex = nextIndex;
+    swipeStart.previewLayerIndex = previewLayerIndex;
+    return true;
+  };
+
   stage.addEventListener("pointerdown", (event) => {
     if (event.pointerType === "mouse" || event.target.closest("button, input")) return;
-    swipeStart = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, dx: 0, cancelled: false };
-    stage.setPointerCapture?.(event.pointerId);
+    swipeStart = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, dx: 0, cancelled: false, direction: 0 };
     art.classList.add("is-swiping");
+    try {
+      stage.setPointerCapture?.(event.pointerId);
+    } catch {
+      // Synthetic pointers and older WebViews may not expose an active capture target.
+    }
   });
 
   stage.addEventListener("pointermove", (event) => {
@@ -175,31 +212,47 @@ function bindSwipeNavigation() {
     }
     if (swipeStart.cancelled) return;
     swipeStart.dx = dx;
-    const story = selectedStory();
-    const atEdge = (state.slideIndex === 0 && dx > 0)
-      || (state.slideIndex === story.slides.length - 1 && dx < 0);
-    art.style.setProperty("--swipe-offset", `${atEdge ? dx * 0.22 : dx * 0.48}px`);
+    const direction = dx < 0 ? 1 : -1;
+    const hasPreview = Math.abs(dx) > 6 && prepareSwipePreview(direction);
+    art.style.setProperty("--swipe-offset", `${hasPreview ? dx : dx * 0.18}px`);
   });
 
   const finishSwipe = (event) => {
     if (!swipeStart || swipeStart.pointerId !== event.pointerId) return;
-    const { dx, cancelled } = swipeStart;
+    const gesture = swipeStart;
+    const { dx, cancelled, direction, nextIndex, previewLayerIndex } = gesture;
     if (cancelled || Math.abs(dx) < 48) {
       resetSwipe();
       return;
     }
-    const direction = dx < 0 ? 1 : -1;
-    const nextIndex = Math.max(0, Math.min(selectedStory().slides.length - 1, state.slideIndex + direction));
-    if (nextIndex === state.slideIndex) {
+    if (!direction || nextIndex === undefined || previewLayerIndex === undefined) {
       resetSwipe();
       return;
     }
     suppressStageClick = true;
     swipeStart = null;
     art.classList.remove("is-swiping");
+    art.classList.add("is-swipe-settling");
+    art.style.setProperty("--swipe-offset", direction > 0 ? "-100%" : "100%");
     stopPlayback();
-    moveSlide(direction);
-    setTimeout(() => { suppressStageClick = false; }, 520);
+    const transitionId = ++sceneTransitionId;
+    setTimeout(() => {
+      if (transitionId !== sceneTransitionId) return;
+      const layers = app.querySelectorAll(".scene-layer");
+      layers[activeSceneLayer].className = "scene-layer";
+      layers[previewLayerIndex].className = "scene-layer is-active";
+      activeSceneLayer = previewLayerIndex;
+      transitionDirection = direction;
+      slideElapsedMs = 0;
+      art.style.setProperty("--swipe-offset", "0px");
+      const story = selectedStory();
+      const slide = story.slides[nextIndex];
+      const motion = state.motion === "story" ? slide.motion : state.motion;
+      art.className = `scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}`;
+      art.dataset.slide = String(nextIndex);
+      setState({ slideIndex: nextIndex });
+      suppressStageClick = false;
+    }, 420);
   };
 
   stage.addEventListener("pointerup", finishSwipe);
@@ -231,16 +284,7 @@ async function updateReader() {
     const layers = app.querySelectorAll(".scene-layer");
     const nextLayer = layers[nextLayerIndex];
     const oldLayer = layers[activeSceneLayer];
-    const source = nextLayer.querySelector("source");
-    const image = nextLayer.querySelector("img");
-
-    if (slide.mobileImage) {
-      if (source) source.srcset = slide.mobileImage;
-      else image.insertAdjacentHTML("beforebegin", `<source media="(max-width: 759px)" srcset="${slide.mobileImage}">`);
-    } else if (source) {
-      source.remove();
-    }
-    image.src = slide.image || "";
+    const image = setLayerSlide(nextLayer, slide);
 
     try {
       await image.decode();
@@ -292,11 +336,6 @@ async function updateReader() {
   }
   const textButton = app.querySelector("[data-action='toggle-text']");
   textButton?.setAttribute("aria-pressed", String(state.textVisible));
-  const controlIsland = app.querySelector(".control-island");
-  controlIsland?.classList.toggle("is-minimized", state.controlsMinimized);
-  const minimizeButton = app.querySelector("[data-action='toggle-controls']");
-  minimizeButton?.setAttribute("aria-label", state.controlsMinimized ? "Agrandir les commandes" : "Réduire les commandes");
-  minimizeButton?.setAttribute("aria-expanded", String(!state.controlsMinimized));
   preloadNearbySlides();
   return true;
 }
@@ -530,7 +569,7 @@ function renderReader() {
       </section>
 
       <section class="reader-controls" aria-label="Story controls">
-        <div class="control-island${state.controlsMinimized ? " is-minimized" : ""}">
+        <div class="control-island">
           <button class="island-button island-expanded" type="button" data-action="previous" aria-label="Scène précédente" ${state.slideIndex === 0 ? "disabled" : ""}>
             <span class="chevron is-left" aria-hidden="true"></span>
           </button>
@@ -546,9 +585,6 @@ function renderReader() {
           <button class="island-button island-expanded text-toggle" type="button" data-action="toggle-text" aria-label="Afficher ou masquer le texte" aria-pressed="${state.textVisible}">
             <span aria-hidden="true">Aa</span>
           </button>
-          <button class="island-button minimize-toggle" type="button" data-action="toggle-controls" aria-label="${state.controlsMinimized ? "Agrandir les commandes" : "Réduire les commandes"}" aria-expanded="${!state.controlsMinimized}">
-            <span class="island-collapse-icon" aria-hidden="true"></span>
-          </button>
         </div>
       </section>
     </main>
@@ -559,11 +595,6 @@ function renderReader() {
   document.querySelector("[data-action='play']").addEventListener("click", togglePlayback);
   document.querySelector("[data-action='toggle-text']").addEventListener("click", () => {
     state.textVisible = !state.textVisible;
-    updateReader();
-    showReaderChrome({ persist: true });
-  });
-  document.querySelector("[data-action='toggle-controls']").addEventListener("click", () => {
-    state.controlsMinimized = !state.controlsMinimized;
     updateReader();
     showReaderChrome({ persist: true });
   });

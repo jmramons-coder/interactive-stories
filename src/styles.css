@@ -364,7 +364,13 @@ button:disabled {
 }
 
 .scene-art.is-swiping .scene-layer { transition: opacity 180ms ease; }
+.scene-art.is-swiping .scene-layer.is-active { transform: translate3d(var(--swipe-offset), 0, 0) scale(1); transition: none; }
 .scene-layer.is-active { z-index: 1; opacity: 1; }
+.scene-layer.is-swipe-preview { z-index: 0; opacity: 1; transition: none; }
+.scene-layer.is-swipe-preview.is-next { transform: translate3d(calc(100% + var(--swipe-offset)), 0, 0) scale(1); }
+.scene-layer.is-swipe-preview.is-previous { transform: translate3d(calc(-100% + var(--swipe-offset)), 0, 0) scale(1); }
+.scene-art.is-swipe-settling .scene-layer.is-active,
+.scene-art.is-swipe-settling .scene-layer.is-swipe-preview { transition: transform 400ms cubic-bezier(.22, .7, .2, 1); }
 .scene-layer.is-preparing-forward { transform: translate3d(7%, 0, 0) scale(1.018); }
 .scene-layer.is-preparing-backward { transform: translate3d(-7%, 0, 0) scale(1.018); }
 .scene-layer.is-exiting-forward { z-index: 1; opacity: 0; transform: translate3d(-4%, 0, 0) scale(.992); }
@@ -435,7 +441,7 @@ button:disabled {
 
 .control-island {
   display: grid;
-  grid-template-columns: 30px 34px 30px minmax(90px, 1fr) 34px 30px;
+  grid-template-columns: 30px 34px 30px minmax(90px, 1fr) 34px;
   align-items: center;
   width: min(100%, 520px);
   min-height: 48px;
@@ -448,20 +454,7 @@ button:disabled {
   box-shadow: 0 8px 30px rgb(0 0 0 / 32%);
   backdrop-filter: blur(20px) saturate(130%);
   -webkit-backdrop-filter: blur(20px) saturate(130%);
-  transition: width 220ms ease, grid-template-columns 220ms ease, padding 220ms ease;
 }
-
-.control-island.is-minimized {
-  grid-template-columns: minmax(120px, 220px) 30px;
-  width: min(72vw, 280px);
-  padding-left: 12px;
-}
-
-.control-island .island-expanded {
-  transition: opacity 140ms ease, transform 160ms ease;
-}
-
-.control-island.is-minimized .island-expanded { display: none; }
 
 .island-button {
   display: inline-flex;
@@ -500,19 +493,6 @@ button:disabled {
 .pause-icon { width: 9px; height: 11px; border-right: 3px solid currentColor; border-left: 3px solid currentColor; }
 .text-toggle { width: 34px; font-size: .68rem; font-weight: 700; }
 .text-toggle[aria-pressed="true"] { background: rgb(255 255 255 / 14%); color: #fff; }
-
-.minimize-toggle { width: 30px; }
-
-.island-collapse-icon {
-  width: 9px;
-  height: 9px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: translateY(-2px) rotate(45deg);
-  transition: transform 180ms ease;
-}
-
-.control-island.is-minimized .island-collapse-icon { transform: translateY(2px) rotate(225deg); }
 
 .chevron {
   width: 8px;
