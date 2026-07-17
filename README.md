@@ -5,6 +5,7 @@ A cinematic digital library for educational picture-book stories.
 ## What Is Included
 
 - Responsive Netflix-style library with published and upcoming collections.
+- Complete French and English interface and story scripts with a persistent language switch.
 - Three complete French stories with desktop and mobile image sources.
 - Immersive reader with direct-manipulation swipes, playback, scrubbing, text controls, and fullscreen mode.
 - Optional French system narration synchronized to each scene.
