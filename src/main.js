@@ -6,7 +6,6 @@ const state = {
   slideIndex: 0,
   isPlaying: false,
   motion: "story",
-  textVisible: true,
   chromeVisible: true
 };
 
@@ -14,9 +13,12 @@ let playTimer = null;
 let chromeTimer = null;
 let activeSceneLayer = 0;
 let sceneTransitionId = 0;
-let scrubTimer = null;
 let swipeStart = null;
 let suppressStageClick = false;
+let slideElapsedMs = 0;
+let playbackStartedAt = null;
+let progressFrame = null;
+let scrubGesture = null;
 
 const app = document.querySelector("#app");
 
@@ -40,6 +42,75 @@ function availableStories() {
 function slideDuration(slide) {
   const wordCount = slide.text.trim().split(/\s+/).length;
   return Math.max(6500, Math.min(12000, 3000 + wordCount * 290));
+}
+
+function storyTiming() {
+  const durations = selectedStory().slides.map(slideDuration);
+  return {
+    durations,
+    total: durations.reduce((sum, duration) => sum + duration, 0),
+    before: durations.slice(0, state.slideIndex).reduce((sum, duration) => sum + duration, 0)
+  };
+}
+
+function currentSlideElapsed() {
+  if (!state.isPlaying || playbackStartedAt === null) return slideElapsedMs;
+  return slideElapsedMs + performance.now() - playbackStartedAt;
+}
+
+function timelineValue() {
+  const timing = storyTiming();
+  const elapsed = Math.min(currentSlideElapsed(), timing.durations[state.slideIndex]);
+  return timing.total ? ((timing.before + elapsed) / timing.total) * 1000 : 0;
+}
+
+function updateTimelineUI(value = timelineValue()) {
+  const timeline = app.querySelector("[data-action='timeline']");
+  if (!timeline) return;
+  const bounded = Math.max(0, Math.min(1000, value));
+  timeline.value = String(bounded);
+  timeline.style.setProperty("--progress", `${bounded / 10}%`);
+  timeline.setAttribute("aria-valuetext", `Scène ${state.slideIndex + 1} sur ${selectedStory().slides.length}`);
+}
+
+function runProgressAnimation() {
+  cancelAnimationFrame(progressFrame);
+  const tick = () => {
+    if (!state.isPlaying) return;
+    updateTimelineUI();
+    progressFrame = requestAnimationFrame(tick);
+  };
+  progressFrame = requestAnimationFrame(tick);
+}
+
+function seekTimeline(value) {
+  const story = selectedStory();
+  const durations = story.slides.map(slideDuration);
+  const total = durations.reduce((sum, duration) => sum + duration, 0);
+  let target = Math.max(0, Math.min(1, value / 1000)) * total;
+  let nextIndex = durations.length - 1;
+
+  for (let index = 0; index < durations.length; index += 1) {
+    if (target < durations[index] || index === durations.length - 1) {
+      nextIndex = index;
+      slideElapsedMs = Math.min(target, durations[index] - 1);
+      break;
+    }
+    target -= durations[index];
+  }
+
+  if (nextIndex !== state.slideIndex) setState({ slideIndex: nextIndex });
+  updateTimelineUI(value);
+}
+
+function timelineMarkers(story) {
+  const durations = story.slides.map(slideDuration);
+  const total = durations.reduce((sum, duration) => sum + duration, 0);
+  let elapsed = 0;
+  return durations.slice(0, -1).map((duration) => {
+    elapsed += duration;
+    return `<i style="left: ${(elapsed / total) * 100}%"></i>`;
+  }).join("");
 }
 
 function clearChromeTimer() {
@@ -85,7 +156,7 @@ function bindSwipeNavigation() {
   if (!stage || !art) return;
 
   const resetSwipe = () => {
-    art.classList.remove("is-swiping");
+    art.classList.remove("is-swiping", "swipe-commit-left", "swipe-commit-right");
     art.style.setProperty("--swipe-offset", "0px");
     swipeStart = null;
   };
@@ -117,12 +188,26 @@ function bindSwipeNavigation() {
   const finishSwipe = (event) => {
     if (!swipeStart || swipeStart.pointerId !== event.pointerId) return;
     const { dx, cancelled } = swipeStart;
-    resetSwipe();
-    if (cancelled || Math.abs(dx) < 48) return;
+    if (cancelled || Math.abs(dx) < 48) {
+      resetSwipe();
+      return;
+    }
+    const direction = dx < 0 ? 1 : -1;
+    const nextIndex = Math.max(0, Math.min(selectedStory().slides.length - 1, state.slideIndex + direction));
+    if (nextIndex === state.slideIndex) {
+      resetSwipe();
+      return;
+    }
     suppressStageClick = true;
-    setTimeout(() => { suppressStageClick = false; }, 240);
+    swipeStart = null;
+    art.classList.remove("is-swiping");
+    art.classList.add(direction > 0 ? "swipe-commit-left" : "swipe-commit-right");
+    art.style.setProperty("--swipe-offset", direction > 0 ? "-14%" : "14%");
     stopPlayback();
-    moveSlide(dx < 0 ? 1 : -1);
+    setTimeout(() => {
+      moveSlide(direction);
+      suppressStageClick = false;
+    }, 160);
   };
 
   stage.addEventListener("pointerup", finishSwipe);
@@ -178,11 +263,11 @@ async function updateReader() {
 
     const motion = state.motion === "story" ? slide.motion : state.motion;
     art.className = `scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}`;
+    art.style.setProperty("--swipe-offset", "0px");
     art.dataset.slide = String(state.slideIndex);
   }
 
   const copy = app.querySelector(".scene-copy");
-  copy.classList.toggle("is-hidden", !state.textVisible);
   copy.querySelector("p").textContent = slide.text;
   if (slideChanged) {
     copy.classList.remove("is-entering");
@@ -191,20 +276,9 @@ async function updateReader() {
 
   shell.classList.toggle("is-playing", state.isPlaying);
   shell.classList.toggle("chrome-visible", state.chromeVisible);
-  const playButton = app.querySelector("[data-action='play']");
-  playButton.classList.toggle("is-playing", state.isPlaying);
-  playButton.setAttribute("aria-pressed", String(state.isPlaying));
-  playButton.setAttribute("aria-label", state.isPlaying ? "Mettre en pause" : "Lire l'histoire");
-  playButton.querySelector(".play-text").textContent = state.isPlaying ? "Pause" : "Lire";
-  const textButton = app.querySelector("[data-action='toggle-text']");
-  textButton.setAttribute("aria-pressed", String(state.textVisible));
-  textButton.setAttribute("aria-label", state.textVisible ? "Masquer le texte" : "Afficher le texte");
-  const scrubber = app.querySelector("[data-action='scrub']");
-  scrubber.value = String(state.slideIndex);
-  scrubber.style.setProperty("--progress", `${story.slides.length === 1 ? 100 : (state.slideIndex / (story.slides.length - 1)) * 100}%`);
-  app.querySelector(".slide-count").textContent = `${state.slideIndex + 1}/${story.slides.length}`;
-  app.querySelector("[data-action='previous']").disabled = state.slideIndex === 0;
-  app.querySelector("[data-action='next']").disabled = state.slideIndex === story.slides.length - 1;
+  updateTimelineUI();
+  app.querySelector("[data-action='previous']").disabled = state.isPlaying || state.slideIndex === 0;
+  app.querySelector("[data-action='next']").disabled = state.isPlaying || state.slideIndex === story.slides.length - 1;
   preloadNearbySlides();
   return true;
 }
@@ -215,12 +289,14 @@ function resetViewport() {
 
 function goToGallery() {
   stopPlayback();
+  slideElapsedMs = 0;
   setState({ route: "gallery", slideIndex: 0 });
   resetViewport();
 }
 
 function openStory(id) {
   stopPlayback();
+  slideElapsedMs = 0;
   setState({ route: "reader", storyId: id, slideIndex: 0 });
   resetViewport();
 }
@@ -228,6 +304,8 @@ function openStory(id) {
 function moveSlide(direction) {
   const story = selectedStory();
   const nextIndex = Math.max(0, Math.min(story.slides.length - 1, state.slideIndex + direction));
+  slideElapsedMs = 0;
+  playbackStartedAt = state.isPlaying ? performance.now() : null;
   setState({ slideIndex: nextIndex });
   if (nextIndex === story.slides.length - 1 && direction > 0) {
     stopPlayback();
@@ -235,27 +313,41 @@ function moveSlide(direction) {
 }
 
 function stopPlayback() {
+  if (state.isPlaying) {
+    slideElapsedMs = Math.min(currentSlideElapsed(), slideDuration(currentSlide()));
+  }
   state.isPlaying = false;
+  playbackStartedAt = null;
   if (playTimer) {
     clearTimeout(playTimer);
     playTimer = null;
   }
+  cancelAnimationFrame(progressFrame);
+  progressFrame = null;
   showReaderChrome({ persist: true });
+  app.querySelector(".reader-shell")?.classList.remove("is-playing");
+  updateTimelineUI();
 }
 
 function scheduleNextSlide() {
   if (!state.isPlaying) return;
   clearTimeout(playTimer);
+  playbackStartedAt = performance.now();
+  const remaining = Math.max(80, slideDuration(currentSlide()) - slideElapsedMs);
   playTimer = setTimeout(() => {
     const story = selectedStory();
     if (state.slideIndex >= story.slides.length - 1) {
+      slideElapsedMs = slideDuration(currentSlide());
       stopPlayback();
       render();
       return;
     }
+    slideElapsedMs = 0;
+    playbackStartedAt = null;
     setState({ slideIndex: state.slideIndex + 1 });
     scheduleNextSlide();
-  }, slideDuration(currentSlide()));
+  }, remaining);
+  runProgressAnimation();
 }
 
 function togglePlayback() {
@@ -266,18 +358,16 @@ function togglePlayback() {
   }
 
   const story = selectedStory();
-  if (state.slideIndex >= story.slides.length - 1) {
+  if (state.slideIndex >= story.slides.length - 1 && slideElapsedMs >= slideDuration(currentSlide()) - 1) {
     state.slideIndex = 0;
+    slideElapsedMs = 0;
   }
 
   state.isPlaying = true;
+  playbackStartedAt = null;
   render();
   scheduleNextSlide();
   showReaderChrome();
-}
-
-function toggleStoryText() {
-  setState({ textVisible: !state.textVisible });
 }
 
 function fullscreenElement() {
@@ -393,8 +483,7 @@ function renderReader() {
   const story = selectedStory();
   const slide = currentSlide();
   const motion = state.motion === "story" ? slide.motion : state.motion;
-  const progress = story.slides.length === 1 ? 100 : (state.slideIndex / (story.slides.length - 1)) * 100;
-  const playLabel = state.isPlaying ? "Mettre en pause" : "Lire l'histoire";
+  const progress = timelineValue();
 
   app.innerHTML = `
     <main class="reader-shell ${state.isPlaying ? "is-playing" : ""} ${state.chromeVisible ? "chrome-visible" : ""}">
@@ -414,30 +503,24 @@ function renderReader() {
         <div class="scene-art cover-${story.coverTone} motion-${motion}${slide.image ? " has-image" : ""}" data-slide="${state.slideIndex}">
           <picture class="scene-layer is-active" aria-hidden="true">${slideImageMarkup(slide)}</picture>
           <picture class="scene-layer" aria-hidden="true"><img alt="" decoding="async"></picture>
-          <div class="scene-copy ${state.textVisible ? "" : "is-hidden"}">
+          <div class="scene-copy">
             <p>${slide.text}</p>
           </div>
         </div>
       </section>
 
       <section class="reader-controls" aria-label="Story controls">
-        <div class="timeline-row">
-          <input data-action="scrub" type="range" min="0" max="${story.slides.length - 1}" value="${state.slideIndex}" aria-label="Progression de l'histoire" style="--progress: ${progress}%" />
-          <span class="slide-count">${state.slideIndex + 1} / ${story.slides.length}</span>
-        </div>
-        <div class="transport">
-          <button class="transport-button previous-button" type="button" data-action="previous" aria-label="Page précédente" ${state.slideIndex === 0 ? "disabled" : ""}>
-            <span class="skip-icon is-previous" aria-hidden="true"></span>
+        <div class="timeline-control">
+          <button class="timeline-arrow" type="button" data-action="previous" aria-label="Scène précédente" ${state.isPlaying || state.slideIndex === 0 ? "disabled" : ""}>
+            <span class="chevron is-left" aria-hidden="true"></span>
           </button>
-          <button class="play-button ${state.isPlaying ? "is-playing" : ""}" type="button" data-action="play" aria-label="${playLabel}" aria-pressed="${state.isPlaying}">
-            <span class="play-icon" aria-hidden="true"></span>
-            <span class="play-text">${state.isPlaying ? "Pause" : "Lire"}</span>
+          <div class="timeline-track">
+            <span class="timeline-markers" aria-hidden="true">${timelineMarkers(story)}</span>
+            <input data-action="timeline" type="range" min="0" max="1000" step="1" value="${progress}" aria-label="Lire, mettre en pause ou parcourir l'histoire" aria-valuetext="Scène ${state.slideIndex + 1} sur ${story.slides.length}" style="--progress: ${progress / 10}%" />
+          </div>
+          <button class="timeline-arrow" type="button" data-action="next" aria-label="Scène suivante" ${state.isPlaying || state.slideIndex === story.slides.length - 1 ? "disabled" : ""}>
+            <span class="chevron is-right" aria-hidden="true"></span>
           </button>
-          <button class="transport-button next-button" type="button" data-action="next" aria-label="Page suivante" ${state.slideIndex === story.slides.length - 1 ? "disabled" : ""}>
-            <span class="skip-icon is-next" aria-hidden="true"></span>
-          </button>
-          <span class="transport-spacer"></span>
-          <button class="text-toggle" type="button" data-action="toggle-text" aria-pressed="${state.textVisible}" aria-label="${state.textVisible ? "Masquer le texte" : "Afficher le texte"}">Aa</button>
         </div>
       </section>
     </main>
@@ -445,7 +528,6 @@ function renderReader() {
 
   document.querySelector("[data-action='gallery']").addEventListener("click", goToGallery);
   document.querySelector("[data-action='fullscreen']").addEventListener("click", toggleFullscreen);
-  document.querySelector("[data-action='play']").addEventListener("click", togglePlayback);
   document.querySelector("[data-action='previous']").addEventListener("click", () => {
     stopPlayback();
     moveSlide(-1);
@@ -454,15 +536,32 @@ function renderReader() {
     stopPlayback();
     moveSlide(1);
   });
-  document.querySelector("[data-action='toggle-text']").addEventListener("click", toggleStoryText);
-  document.querySelector("[data-action='scrub']").addEventListener("input", (event) => {
-    stopPlayback();
-    const nextIndex = Number(event.target.value);
-    const nextProgress = story.slides.length === 1 ? 100 : (nextIndex / (story.slides.length - 1)) * 100;
-    event.target.style.setProperty("--progress", `${nextProgress}%`);
-    document.querySelector(".slide-count").textContent = `${nextIndex + 1}/${story.slides.length}`;
-    clearTimeout(scrubTimer);
-    scrubTimer = setTimeout(() => setState({ slideIndex: nextIndex }), 90);
+  const timeline = document.querySelector("[data-action='timeline']");
+  timeline.addEventListener("pointerdown", () => {
+    scrubGesture = { wasPlaying: state.isPlaying, startValue: Number(timeline.value), changed: false };
+    if (state.isPlaying) stopPlayback();
+  });
+  timeline.addEventListener("input", () => {
+    const value = Number(timeline.value);
+    if (!scrubGesture) {
+      scrubGesture = { wasPlaying: false, startValue: value, changed: true };
+      stopPlayback();
+    }
+    scrubGesture.changed ||= Math.abs(value - scrubGesture.startValue) > 3;
+    seekTimeline(value);
+  });
+  timeline.addEventListener("pointerup", () => {
+    const gesture = scrubGesture;
+    scrubGesture = null;
+    if (gesture?.wasPlaying && !gesture.changed) {
+      render();
+      return;
+    }
+    if (!state.isPlaying) togglePlayback();
+  });
+  timeline.addEventListener("pointercancel", () => {
+    scrubGesture = null;
+    render();
   });
   updateFullscreenButton();
   activeSceneLayer = 0;
@@ -509,8 +608,12 @@ document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
 document.addEventListener("visibilitychange", () => {
   if (!state.isPlaying) return;
   if (document.hidden) {
+    slideElapsedMs = Math.min(currentSlideElapsed(), slideDuration(currentSlide()));
+    playbackStartedAt = null;
     clearTimeout(playTimer);
     playTimer = null;
+    cancelAnimationFrame(progressFrame);
+    progressFrame = null;
   } else {
     scheduleNextSlide();
   }
